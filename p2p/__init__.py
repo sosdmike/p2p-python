@@ -272,8 +272,6 @@ class P2P(object):
             for i in range(len(ret)):
                 if ret[i] is None or force_update:
                     new_item = resp.pop(0)
-                    print "ids[i], new_item['id']"
-                    print ids[i], new_item['id']
                     assert ids[i] == new_item['id']
                     if new_item['status'] == 200:
                         ret[i] = new_item['body']['content_item']
