@@ -485,6 +485,15 @@ class P2P(object):
         resp = self.get("/content_items/search.json", params)
         return resp
 
+    def search_collections(self, term, owner, results):
+        """
+        Requests a list of collections from P2P based on search term and owner.
+        """
+        ret = self.get(
+            '/collections/search.json?search_token=%s\&productaffiliate_code=%s\
+            &page=0&limit=%d' % (term, owner, results))
+        return ret
+
     def get_collection(self, code, query=None, force_update=False):
         """
         Get the data for this collection. To get the items in a collection,
