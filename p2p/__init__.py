@@ -13,12 +13,14 @@ from .adapters import TribAdapter
 from wsgiref.handlers import format_date_time
 from .errors import (
     P2PException,
+    P2PFileError,
     P2PSlugTaken,
     P2PNotFound,
     P2PForbidden,
     P2PSearchError,
     P2PTimeoutError,
     P2PRetryableError,
+    P2PInvalidFileType,
     P2PEncodingMismatch,
     P2PUnknownAttribute,
     P2PPhotoUploadError,
@@ -953,40 +955,6 @@ class P2P(object):
         fancy_section['path'] = path
         return fancy_section
 
-    def get_thumb_for_slug(self, slug, force_update=False):
-        """
-        Get information on how to display images associated with this slug
-        """
-        url = "%s/photos/turbine/%s.json" % (
-            self.config['IMAGE_SERVICES_URL'],
-            slug
-        )
-
-        thumb = None
-
-        if force_update:
-            log.debug("GET: %s" % url)
-            resp = self.s.get(
-                url,
-                headers=self.http_headers(),
-                verify=False)
-            if resp.ok:
-                thumb = resp.json()
-                self.cache.save_thumb(thumb)
-        else:
-            thumb = self.cache.get_thumb(slug)
-            if not thumb:
-                log.debug("GET: %s" % url)
-                resp = self.s.get(
-                    url,
-                    headers=self.http_headers(),
-                    verify=False)
-                if resp.ok:
-                    thumb = resp.json()
-                    self.cache.save_thumb(thumb)
-
-        return thumb
-
     def get_nav(self, collection_code, domain=None):
         """
         get a simple dictionary of text and links for a navigation collection
@@ -1079,12 +1047,14 @@ class P2P(object):
                 elif (u'Failed to upload image to the photo service'
                         in resp.content):
                     raise P2PPhotoUploadError(resp.url, request_log)
+                elif u"This file type is not supported" in resp.content:
+                    raise P2PInvalidFileType(resp.url, request_log)
                 data = resp.json()
                 if 'errors' in data:
                     raise P2PException(data['errors'][0], request_log)
             except ValueError:
                 pass
-            resp.raise_for_status()
+            raise P2PException(resp.url, request_log)
         elif resp.status_code == 404:
             raise P2PNotFound(resp.url, request_log)
         elif resp.status_code >= 400:
