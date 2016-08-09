@@ -1079,7 +1079,7 @@ class P2P(object):
                     raise P2PException(data['errors'][0], request_log)
             except ValueError:
                 pass
-            resp.raise_for_status()
+            raise P2PException(resp.url, request_log)
         elif resp.status_code == 404:
             raise P2PNotFound(resp.url, request_log)
         elif resp.status_code >= 400:
