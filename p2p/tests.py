@@ -376,12 +376,29 @@ class TestP2P(unittest.TestCase):
             self.assertIn(k, data['items'][0].keys())
 
     def test_multi_items(self):
-        data = self.p2p.get_multi_content_items(ids=self.test_story_slugs[:2])
+        """
+        Try sending in 3 ids to get_multi_content_items and assert that it
+        returns the IDs we passed in.
+        """
+        # Grab the IDs
+        ci_ids = []
+        for slug in self.test_story_slugs[:3]:
+            ci = self.p2p.get_content_item(slug)
+            ci_ids.append(ci["id"])
+
+        # Make the call
+        data = self.p2p.get_multi_content_items(ci_ids)
+
+        # Ensure the first item has all the keys we expect
         for k in self.content_item_keys:
             self.assertIn(k, data[0].keys())
 
-    def test_many_multi_items(self):
+        # Loop through each content item and ensure the ID
+        # matches what was passed in to get_multi_content_items
+        for i, ci in enumerate(data):
+            self.assertEqual(data[i]["id"], ci_ids[i])
 
+    def test_many_multi_items(self):
         self.p2p.remove_from_collection(
             self.first_test_collection_code, self.test_story_slugs
         )
@@ -427,21 +444,6 @@ class TestP2P(unittest.TestCase):
 
         for k in ('title', 'id', 'slug'):
             self.assertIn(k, data['related_items'][0]['content_item'])
-
-    def test_image_services(self):
-        data = self.p2p.get_thumb_for_slug(self.first_test_story_slug)
-
-        self.assertEqual(
-            data, {
-                u'crops': [],
-                u'height': 1200,
-                u'id': u'turbine/chi-na-lorem-a',
-                u'namespace': u'turbine',
-                u'size': 613306,
-                u'slug': u'chi-na-lorem-a',
-                u'url': u'/img-5339c184/turbine/chi-na-lorem-a',
-                u'width': 1600
-            })
 
     def test_get_section(self):
         data = self.p2p.get_section('/local')

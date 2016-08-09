@@ -98,10 +98,6 @@ Add metadata to the item so it is seen by robots and remove any noindex and nofo
 
 Add metadata to the item so it is hidden from robots using the noindex and nofollow tags. Provide the slug of the content item you'd like to update.
 
-`get_thumb_for_slug(slug, force_update=False)`
-
-Get information on how to display images associated with this slug.
-
 
 ### Topics
 
