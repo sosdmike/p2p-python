@@ -42,6 +42,10 @@ class P2PInvalidFileType(P2PFileError):
     pass
 
 
+class P2PFileURLNotFound(P2PFileError):
+    pass
+
+
 class P2PRetryableError(P2PException):
     """
     A base exception for errors we want to retry when they fail.

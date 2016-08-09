@@ -20,6 +20,7 @@ from .errors import (
     P2PSearchError,
     P2PTimeoutError,
     P2PRetryableError,
+    P2PFileURLNotFound,
     P2PInvalidFileType,
     P2PEncodingMismatch,
     P2PUnknownAttribute,
@@ -1074,9 +1075,15 @@ class P2P(object):
                     raise P2PPhotoUploadError(resp.url, request_log)
                 elif u"This file type is not supported" in resp.content:
                     raise P2PInvalidFileType(resp.url, request_log)
+
                 data = resp.json()
+
                 if 'errors' in data:
+                    if data['errors'][0].startswith("The URL") and \
+data['errors'][0].endswith("does not exist."):
+                        raise P2PFileURLNotFound(resp.url, request_log)
                     raise P2PException(data['errors'][0], request_log)
+
             except ValueError:
                 pass
             resp.raise_for_status()
