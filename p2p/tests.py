@@ -466,6 +466,23 @@ class TestP2P(unittest.TestCase):
             "Collection 'la_test_api_create' destroyed successfully"
         )
 
+    def test_search_collections(self):
+        # Create dummy collection
+        collection_code = "la_test_search_collections"
+        collection_name = "Collection to test search functionality"
+        data = self.p2p.create_collection({
+            'code': collection_code,
+            'name': collection_name,
+            'section_path': '/test'
+        })
+
+        # Get results from collection search, check we can get a name from it
+        results = self.p2p.search_collections(collection_code, "lanews", 10)
+        test_name = results['search_results']['collections'][0]['name']
+        # Cleanup and test
+        self.p2p.delete_collection(collection_code)
+        self.assertEqual(test_name, collection_name)
+
     def test_publish_story(self):
         """
         Here we are going to create a story, create a photo, attach the photo

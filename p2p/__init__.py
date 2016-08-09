@@ -492,7 +492,7 @@ class P2P(object):
         Requests a list of collections from P2P based on search term and owner.
         """
         ret = self.get(
-            '/collections/search.json?search_token=%s\&productaffiliate_code=%s\
+            '/collections/search.json?search_token=%s&productaffiliate_code=%s\
             &page=0&limit=%d' % (term, owner, results))
         return ret
 
@@ -1079,7 +1079,7 @@ class P2P(object):
         resp = self.s.get(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
-            verify=False)
+            verify=True)
 
         resp_log = self._check_for_errors(resp, url)
         try:
@@ -1097,7 +1097,7 @@ class P2P(object):
         resp = self.s.delete(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(),
-            verify=False)
+            verify=True)
 
         self._check_for_errors(resp, url)
         return utils.parse_response(resp.content)
@@ -1110,7 +1110,7 @@ class P2P(object):
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=False
+            verify=True
         )
 
         resp_log = self._check_for_errors(resp, url)
@@ -1131,7 +1131,7 @@ class P2P(object):
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=False
+            verify=True
         )
 
         resp_log = self._check_for_errors(resp, url)
