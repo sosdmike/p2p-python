@@ -13,11 +13,9 @@ pp = pprint.PrettyPrinter(indent=4)
 class TestP2P(unittest.TestCase):
 
     def setUp(self):
-
         self.p2p = get_connection()
         self.p2p.debug = True
-        self.p2p.config['IMAGE_SERVICES_URL'] = \
-            'http://image.p2p.tribuneinteractive.com'
+        self.p2p.config['IMAGE_SERVICES_URL'] = 'http://image.p2p.tribuneinteractive.com'
         self.maxDiff = None
 
         self.content_item_keys = (
@@ -477,8 +475,19 @@ class TestP2P(unittest.TestCase):
         })
 
         # Get results from collection search, check we can get a name from it
-        results = self.p2p.search_collections(collection_code, "lanews", 10)
-        test_name = results['search_results']['collections'][0]['name']
+        results = self.p2p.search_collections(collection_code)
+        test_name = results[0]['name']
+        self.assertEqual(len(results), 1)
+
+        results = self.p2p.search_collections(collection_code, 10)
+        self.assertEqual(len(results), 1)
+
+        results = self.p2p.search_collections(collection_code, product_affiliate_code='lanews')
+        self.assertEqual(len(results), 1)
+
+        results = self.p2p.search_collections('la-foobazbar')
+        self.assertEqual(len(results), 0)
+
         # Cleanup and test
         self.p2p.delete_collection(collection_code)
         self.assertEqual(test_name, collection_name)

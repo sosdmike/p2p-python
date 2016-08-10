@@ -1,8 +1,14 @@
-.PHONY: test
+.PHONY: test testcollectionsearch
+
+name='foo'
 
 test:
 	clear
-	- pep8 p2p
-	- pyflakes p2p
-	coverage run setup.py test
-	coverage report -m
+	@if [ $(name) = 'foo' ]; then \
+		echo "Running all tests";\
+		coverage run setup.py test;\
+		coverage report -m;\
+	else \
+		echo "Running provided test";\
+		python -m unittest p2p.tests.TestP2P.$(name);\
+	fi

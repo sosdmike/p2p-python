@@ -170,6 +170,10 @@ class P2P(object):
             "content_item_state_code": "live",
         }
 
+        self.collection_defaults = {
+            "product_affiliate_code": self.product_affiliate_code,
+        }
+
         self.s = requests.Session()
         self.s.mount('https://', TribAdapter())
 
@@ -484,17 +488,26 @@ class P2P(object):
         })
 
     def search(self, params):
-        resp = self.get("/content_items/search.json", params)
-        return resp
+        """
+        Searches P2P content items based on whatever is in the mystery params dictionary.
+        """
+        return self.get("/content_items/search.json", params)
 
-    def search_collections(self, term, owner, results):
+    def search_collections(self, search_token, results=20, product_affiliate_code=None):
         """
         Requests a list of collections from P2P based on search term and owner.
         """
-        ret = self.get(
-            '/collections/search.json?search_token=%s&productaffiliate_code=%s\
-            &page=0&limit=%d' % (term, owner, results))
-        return ret
+        # Make a copy of our collection defaults
+        params = deepcopy(self.collection_defaults)
+        # Stick this search in there
+        params['search_token'] = search_token
+        # Also add the results length cutoff
+        params['results'] = results
+        # And if the user has provided a product affiliate code, override that
+        if product_affiliate_code:
+            params['product_affiliate_code'] = product_affiliate_code
+        # Make the search and return the results
+        return self.get('/collections/search.json', params)['search_results']['collections']
 
     def get_collection(self, code, query=None, force_update=False):
         """
@@ -1079,8 +1092,8 @@ class P2P(object):
         resp = self.s.get(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
-            verify=True)
-
+            verify=True
+        )
         resp_log = self._check_for_errors(resp, url)
         try:
             ret = utils.parse_response(resp.json())
