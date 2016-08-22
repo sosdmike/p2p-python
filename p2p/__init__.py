@@ -669,6 +669,45 @@ class P2P(object):
             pass
         return ret
 
+    def append_contributors_to_content_item(self, slug, contributors):
+        """
+        Push a list of editorial staff slugs into a content item's
+        contributors array for the display of advanced bylines
+        {
+          "items": [
+            {
+              "slug": "contributor_to_append_1"
+            },
+            {
+              "slug": "contributor_to_append_2"
+            }
+          ]
+        }
+        """
+        ret = self.put_json(
+            '/content_items/%s/append_contributors.json' % slug,
+            {'items': contributors})
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return ret
+
+    def remove_contributors_from_content_item(self, slug, contributors):
+        """
+        Pops a list of editorial staff slugs from a content item's
+        contributors array
+        Takes an array of slugs similar to append_contributors_to_content_item()
+        """
+        ret = self.put_json(
+            '/content_items/%s/remove_contributors.json' % slug,
+            {'items': contributors})
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return ret
+
     def push_into_content_item(self, slug, content_item_slugs):
         """
         Push a list of content item slugs onto the top of the related
