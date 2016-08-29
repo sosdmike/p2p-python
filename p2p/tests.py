@@ -157,6 +157,48 @@ class TestP2P(unittest.TestCase):
         data = self.p2p.get_content_item(self.test_htmlstory_slug)
         self.assertEqual(len(data["embedded_items"]), 0)
 
+    def test_add_remove_contributors(self):
+        test_contributor_1 = {"slug": "la-tester-20160727"}
+        test_contributor_2 = {"slug": "la-test-testtest-20140528"}
+
+        # Add a contributor
+        self.p2p.append_contributors_to_content_item(
+            self.first_test_story_slug,
+            [test_contributor_1]
+        )
+
+        # Add contributors to our content item query
+        query = self.p2p.default_content_item_query
+        query['include'].append('contributors')
+
+        # Check that a contributor was added
+        data = self.p2p.get_content_item(self.first_test_story_slug, query)
+        self.assertEqual(len(data["contributors"]), 1)
+
+        # Add another contributor
+        self.p2p.append_contributors_to_content_item(
+            self.first_test_story_slug,
+            [test_contributor_2]
+        )
+
+        # Check that we now have two contributors
+        data = self.p2p.get_content_item(self.first_test_story_slug, query)
+        self.assertEqual(len(data["contributors"]), 2)
+
+        # Remove the contributors
+        test_contributors = [
+            test_contributor_1,
+            test_contributor_2,
+            {"slug": "la-jason-test-20140826"}
+        ]
+        self.p2p.remove_contributors_from_content_item(
+            self.first_test_story_slug,
+            test_contributors
+        )
+
+        data = self.p2p.get_content_item(self.first_test_story_slug, query)
+        self.assertEqual(len(data["contributors"]), 0)
+
     def test_create_update_delete_content_item(self):
         data = {
             'slug': 'la_na_test_create_update_delete',
