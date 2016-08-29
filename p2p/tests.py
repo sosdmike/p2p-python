@@ -188,8 +188,7 @@ class TestP2P(unittest.TestCase):
         # Remove the contributors
         test_contributors = [
             test_contributor_1,
-            test_contributor_2,
-            {"slug": "la-jason-test-20140826"}
+            test_contributor_2
         ]
         self.p2p.remove_contributors_from_content_item(
             self.first_test_story_slug,
