@@ -171,7 +171,7 @@ class P2P(object):
         }
 
         self.collection_defaults = {
-            "product_affiliate_code": self.product_affiliate_code,
+            "productaffiliate_code": self.product_affiliate_code,
         }
 
         self.s = requests.Session()
@@ -493,7 +493,7 @@ class P2P(object):
         """
         return self.get("/content_items/search.json", params)
 
-    def search_collections(self, search_token, results=20, product_affiliate_code=None):
+    def search_collections(self, search_token, limit=20, product_affiliate_code=None):
         """
         Requests a list of collections from P2P based on search term and owner.
         """
@@ -502,10 +502,10 @@ class P2P(object):
         # Stick this search in there
         params['search_token'] = search_token
         # Also add the results length cutoff
-        params['results'] = results
+        params['limit'] = limit
         # And if the user has provided a product affiliate code, override that
         if product_affiliate_code:
-            params['product_affiliate_code'] = product_affiliate_code
+            params['productaffiliate_code'] = product_affiliate_code
         # Make the search and return the results
         return self.get('/collections/search.json', params)['search_results']['collections']
 
