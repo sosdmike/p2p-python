@@ -341,6 +341,28 @@ class P2P(object):
 
         return resp
 
+    def insert_into_content_item_with_labels(self, slug, content_item_slugs, position=1, labels=None):
+        """
+        Insert a list of content item slugs into the related items list for
+        a content item, starting at the specified position, with labels
+        """
+        if len(labels) != len(content_item_slugs):
+            raise ValueError('content_item_slugs and labels must be the same length')
+
+        items = [{
+                'slug': content_item_slugs[i],
+                'position': position + i,
+                'display_label': labels[i]
+            } for i in range(len(content_item_slugs))]
+        ret = self.put_json(
+            '/content_items/insert_related_items.json?id=%s' % slug,
+            {'items': items})
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return ret
+
     def hide_right_rail(self, slug):
         """
         Hide the right rail from an HTML story. Provide the slug
