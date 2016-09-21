@@ -171,6 +171,10 @@ class P2P(object):
             "content_item_state_code": "live",
         }
 
+        self.collection_defaults = {
+            "productaffiliate_code": self.product_affiliate_code,
+        }
+
         self.s = requests.Session()
         self.s.mount('https://', TribAdapter())
 
@@ -485,8 +489,26 @@ class P2P(object):
         })
 
     def search(self, params):
-        resp = self.get("/content_items/search.json", params)
-        return resp
+        """
+        Searches P2P content items based on whatever is in the mystery params dictionary.
+        """
+        return self.get("/content_items/search.json", params)
+
+    def search_collections(self, search_token, limit=20, product_affiliate_code=None):
+        """
+        Requests a list of collections from P2P based on search term and owner.
+        """
+        # Make a copy of our collection defaults
+        params = deepcopy(self.collection_defaults)
+        # Stick this search in there
+        params['search_token'] = search_token
+        # Also add the results length cutoff
+        params['limit'] = limit
+        # And if the user has provided a product affiliate code, override that
+        if product_affiliate_code:
+            params['productaffiliate_code'] = product_affiliate_code
+        # Make the search and return the results
+        return self.get('/collections/search.json', params)['search_results']['collections']
 
     def get_collection(self, code, query=None, force_update=False):
         """
@@ -644,6 +666,45 @@ class P2P(object):
         try:
             self.cache.remove_collection(code)
             self.cache.remove_collection_layout(code)
+        except NotImplementedError:
+            pass
+        return ret
+
+    def append_contributors_to_content_item(self, slug, contributors):
+        """
+        Push a list of editorial staff slugs into a content item's
+        contributors array for the display of advanced bylines
+        {
+          "items": [
+            {
+              "slug": "contributor_to_append_1"
+            },
+            {
+              "slug": "contributor_to_append_2"
+            }
+          ]
+        }
+        """
+        ret = self.put_json(
+            '/content_items/%s/append_contributors.json' % slug,
+            {'items': contributors})
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return ret
+
+    def remove_contributors_from_content_item(self, slug, contributors):
+        """
+        Pops a list of editorial staff slugs from a content item's
+        contributors array
+        Takes an array of slugs similar to append_contributors_to_content_item()
+        """
+        ret = self.put_json(
+            '/content_items/%s/remove_contributors.json' % slug,
+            {'items': contributors})
+        try:
+            self.cache.remove_content_item(slug)
         except NotImplementedError:
             pass
         return ret
@@ -947,40 +1008,6 @@ class P2P(object):
         fancy_section['path'] = path
         return fancy_section
 
-    def get_thumb_for_slug(self, slug, force_update=False):
-        """
-        Get information on how to display images associated with this slug
-        """
-        url = "%s/photos/turbine/%s.json" % (
-            self.config['IMAGE_SERVICES_URL'],
-            slug
-        )
-
-        thumb = None
-
-        if force_update:
-            log.debug("GET: %s" % url)
-            resp = self.s.get(
-                url,
-                headers=self.http_headers(),
-                verify=False)
-            if resp.ok:
-                thumb = resp.json()
-                self.cache.save_thumb(thumb)
-        else:
-            thumb = self.cache.get_thumb(slug)
-            if not thumb:
-                log.debug("GET: %s" % url)
-                resp = self.s.get(
-                    url,
-                    headers=self.http_headers(),
-                    verify=False)
-                if resp.ok:
-                    thumb = resp.json()
-                    self.cache.save_thumb(thumb)
-
-        return thumb
-
     def get_nav(self, collection_code, domain=None):
         """
         get a simple dictionary of text and links for a navigation collection
@@ -1086,7 +1113,7 @@ data['errors'][0].endswith("does not exist."):
 
             except ValueError:
                 pass
-            resp.raise_for_status()
+            raise P2PException(resp.url, request_log)
         elif resp.status_code == 404:
             raise P2PNotFound(resp.url, request_log)
         elif resp.status_code >= 400:
@@ -1111,8 +1138,8 @@ data['errors'][0].endswith("does not exist."):
         resp = self.s.get(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
-            verify=False)
-
+            verify=True
+        )
         resp_log = self._check_for_errors(resp, url)
         try:
             ret = utils.parse_response(resp.json())
@@ -1129,7 +1156,7 @@ data['errors'][0].endswith("does not exist."):
         resp = self.s.delete(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(),
-            verify=False)
+            verify=True)
 
         self._check_for_errors(resp, url)
         return utils.parse_response(resp.content)
@@ -1142,7 +1169,7 @@ data['errors'][0].endswith("does not exist."):
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=False
+            verify=True
         )
 
         resp_log = self._check_for_errors(resp, url)
@@ -1163,7 +1190,7 @@ data['errors'][0].endswith("does not exist."):
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=False
+            verify=True
         )
 
         resp_log = self._check_for_errors(resp, url)

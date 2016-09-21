@@ -13,11 +13,9 @@ pp = pprint.PrettyPrinter(indent=4)
 class TestP2P(unittest.TestCase):
 
     def setUp(self):
-
         self.p2p = get_connection()
         self.p2p.debug = True
-        self.p2p.config['IMAGE_SERVICES_URL'] = \
-            'http://image.p2p.tribuneinteractive.com'
+        self.p2p.config['IMAGE_SERVICES_URL'] = 'http://image.p2p.tribuneinteractive.com'
         self.maxDiff = None
 
         self.content_item_keys = (
@@ -158,6 +156,47 @@ class TestP2P(unittest.TestCase):
         )
         data = self.p2p.get_content_item(self.test_htmlstory_slug)
         self.assertEqual(len(data["embedded_items"]), 0)
+
+    def test_add_remove_contributors(self):
+        test_contributor_1 = {"slug": "la-tester-20160727"}
+        test_contributor_2 = {"slug": "la-test-testtest-20140528"}
+
+        # Add a contributor
+        self.p2p.append_contributors_to_content_item(
+            self.first_test_story_slug,
+            [test_contributor_1]
+        )
+
+        # Add contributors to our content item query
+        query = self.p2p.default_content_item_query
+        query['include'].append('contributors')
+
+        # Check that a contributor was added
+        data = self.p2p.get_content_item(self.first_test_story_slug, query)
+        self.assertEqual(len(data["contributors"]), 1)
+
+        # Add another contributor
+        self.p2p.append_contributors_to_content_item(
+            self.first_test_story_slug,
+            [test_contributor_2]
+        )
+
+        # Check that we now have two contributors
+        data = self.p2p.get_content_item(self.first_test_story_slug, query)
+        self.assertEqual(len(data["contributors"]), 2)
+
+        # Remove the contributors
+        test_contributors = [
+            test_contributor_1,
+            test_contributor_2
+        ]
+        self.p2p.remove_contributors_from_content_item(
+            self.first_test_story_slug,
+            test_contributors
+        )
+
+        data = self.p2p.get_content_item(self.first_test_story_slug, query)
+        self.assertEqual(len(data["contributors"]), 0)
 
     def test_create_update_delete_content_item(self):
         data = {
@@ -376,12 +415,29 @@ class TestP2P(unittest.TestCase):
             self.assertIn(k, data['items'][0].keys())
 
     def test_multi_items(self):
-        data = self.p2p.get_multi_content_items(ids=self.test_story_slugs[:2])
+        """
+        Try sending in 3 ids to get_multi_content_items and assert that it
+        returns the IDs we passed in.
+        """
+        # Grab the IDs
+        ci_ids = []
+        for slug in self.test_story_slugs[:3]:
+            ci = self.p2p.get_content_item(slug)
+            ci_ids.append(ci["id"])
+
+        # Make the call
+        data = self.p2p.get_multi_content_items(ci_ids)
+
+        # Ensure the first item has all the keys we expect
         for k in self.content_item_keys:
             self.assertIn(k, data[0].keys())
 
-    def test_many_multi_items(self):
+        # Loop through each content item and ensure the ID
+        # matches what was passed in to get_multi_content_items
+        for i, ci in enumerate(data):
+            self.assertEqual(data[i]["id"], ci_ids[i])
 
+    def test_many_multi_items(self):
         self.p2p.remove_from_collection(
             self.first_test_collection_code, self.test_story_slugs
         )
@@ -428,21 +484,6 @@ class TestP2P(unittest.TestCase):
         for k in ('title', 'id', 'slug'):
             self.assertIn(k, data['related_items'][0]['content_item'])
 
-    def test_image_services(self):
-        data = self.p2p.get_thumb_for_slug(self.first_test_story_slug)
-
-        self.assertEqual(
-            data, {
-                u'crops': [],
-                u'height': 1200,
-                u'id': u'turbine/chi-na-lorem-a',
-                u'namespace': u'turbine',
-                u'size': 613306,
-                u'slug': u'chi-na-lorem-a',
-                u'url': u'/img-5339c184/turbine/chi-na-lorem-a',
-                u'width': 1600
-            })
-
     def test_get_section(self):
         data = self.p2p.get_section('/local')
         self.assertEqual(type(data), dict)
@@ -463,6 +504,34 @@ class TestP2P(unittest.TestCase):
             data,
             "Collection 'la_test_api_create' destroyed successfully"
         )
+
+    def test_search_collections(self):
+        # Create dummy collection
+        collection_code = "la_test_search_collections"
+        collection_name = "Collection to test search functionality"
+        data = self.p2p.create_collection({
+            'code': collection_code,
+            'name': collection_name,
+            'section_path': '/test'
+        })
+
+        # Get results from collection search, check we can get a name from it
+        results = self.p2p.search_collections(collection_code)
+        test_name = results[0]['name']
+        self.assertEqual(len(results), 1)
+
+        results = self.p2p.search_collections(collection_code, 10)
+        self.assertEqual(len(results), 1)
+
+        results = self.p2p.search_collections(collection_code, product_affiliate_code='lanews')
+        self.assertEqual(len(results), 1)
+
+        results = self.p2p.search_collections('la-foobazbar')
+        self.assertEqual(len(results), 0)
+
+        # Cleanup and test
+        self.p2p.delete_collection(collection_code)
+        self.assertEqual(test_name, collection_name)
 
     def test_publish_story(self):
         """
