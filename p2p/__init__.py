@@ -1116,12 +1116,6 @@ curl)
 
                 data = resp.json()
 
-                if 'errors' in data:
-                    if data['errors'][0].startswith("The URL") and \
-data['errors'][0].endswith("does not exist."):
-                        raise P2PFileURLNotFound(resp.url, request_log, curl)
-                    raise P2PException(data['errors'][0], request_log, curl)
-
             except ValueError:
                 pass
             raise P2PException(resp.url, request_log, curl)
