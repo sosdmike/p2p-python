@@ -20,7 +20,6 @@ from .errors import (
     P2PSearchError,
     P2PTimeoutError,
     P2PRetryableError,
-    P2PFileURLNotFound,
     P2PInvalidFileType,
     P2PEncodingMismatch,
     P2PUnknownAttribute,
