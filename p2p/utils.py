@@ -114,3 +114,27 @@ def parsedate(d):
         return iso8601.parse_date(d).replace(tzinfo=pytz.utc)
     else:
         return parse(d)
+
+
+def request_to_curl(request):
+    """
+    Returns a mimic of a request object as a curl. Useful for debugging.
+    curl commands are the CS team's preferred bug reporting method.
+    """
+    command = "curl -v -X{method} -H {headers} -d '{data}' '{uri}'"
+
+    # Redact the authorization token so it doesn't end up in the logs
+    if "Authorization" in request.headers:
+        request.headers["Authorization"] = "Bearer P2P_API_KEY_REDACTED"
+
+    # Format the headers
+    headers = ['"{0}: {1}"'.format(k, v) for k, v in request.headers.items()]
+    headers = " -H ".join(headers)
+
+    # Return the formatted curl command.
+    return command.format(
+        method=request.method,
+        headers=headers,
+        data=request.body,
+        uri=request.url
+    )

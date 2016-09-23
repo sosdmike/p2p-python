@@ -1067,6 +1067,12 @@ class P2P(object):
         return h
 
     def _check_for_errors(self, resp, req_url):
+        """
+        Parses the P2P response, scanning and raising for exceptions. When an
+        exception is raised, its message will contain the response url, a curl
+        string of the request and a dictionary of response data.
+        """
+        curl = utils.request_to_curl(resp.request)
         request_log = {
             'REQ_URL': req_url,
             'REQ_HEADERS': self.http_headers(),
@@ -1074,65 +1080,78 @@ class P2P(object):
             'STATUS': resp.status_code,
             'RESP_BODY': resp.content,
             'RESP_HEADERS': resp.headers,
+            # The time taken between sending the first byte of
+            # the request and finishing parsing the response headers
+            'SECONDS_ELAPSED': resp.elapsed.total_seconds()
         }
 
         if self.debug:
-            for k, v in request_log.items():
-                log.debug('%s: %s' % (k, v))
+            log.debug("[P2P][RESPONSE] %s" % request_log)
 
         if resp.status_code >= 500:
             try:
                 if u'ORA-00001: unique constraint' in resp.content:
-                    raise P2PUniqueConstraintViolated(resp.url, request_log)
+                    raise P2PUniqueConstraintViolated(resp.url, request_log, \
+curl)
                 elif u'incompatible encoding regexp match' in resp.content:
-                    raise P2PEncodingMismatch(resp.url, request_log)
+                    raise P2PEncodingMismatch(resp.url, request_log, curl)
                 elif u'unknown attribute' in resp.content:
-                    raise P2PUnknownAttribute(resp.url, request_log)
+                    raise P2PUnknownAttribute(resp.url, request_log, curl)
                 elif u"Invalid access definition" in resp.content:
-                    raise P2PInvalidAccessDefinition(resp.url, request_log)
+                    raise P2PInvalidAccessDefinition(resp.url, request_log, \
+curl)
                 elif u"solr.tila.trb" in resp.content:
-                    raise P2PSearchError(resp.url, request_log)
+                    raise P2PSearchError(resp.url, request_log, curl)
                 elif u"Request Timeout" in resp.content:
-                    raise P2PTimeoutError(resp.url, request_log)
+                    raise P2PTimeoutError(resp.url, request_log, curl)
                 elif u'Duplicate entry' in resp.content:
-                    raise P2PUniqueConstraintViolated(resp.url, request_log)
+                    raise P2PUniqueConstraintViolated(resp.url, request_log, \
+curl)
                 elif (u'Failed to upload image to the photo service'
                         in resp.content):
-                    raise P2PPhotoUploadError(resp.url, request_log)
+                    raise P2PPhotoUploadError(resp.url, request_log, curl)
                 elif u"This file type is not supported" in resp.content:
-                    raise P2PInvalidFileType(resp.url, request_log)
+                    raise P2PInvalidFileType(resp.url, request_log, curl)
+
                 data = resp.json()
-                if 'errors' in data:
-                    raise P2PException(data['errors'][0], request_log)
+
             except ValueError:
                 pass
-            raise P2PException(resp.url, request_log)
+            raise P2PException(resp.url, request_log, curl)
         elif resp.status_code == 404:
-            raise P2PNotFound(resp.url, request_log)
+            raise P2PNotFound(resp.url, request_log, curl)
         elif resp.status_code >= 400:
             if u'{"slug":["has already been taken"]}' in resp.content:
-                raise P2PSlugTaken(resp.url, request_log)
+                raise P2PSlugTaken(resp.url, request_log, curl)
             elif u'{"code":["has already been taken"]}' in resp.content:
-                raise P2PSlugTaken(resp.url, request_log)
+                raise P2PSlugTaken(resp.url, request_log, curl)
             elif resp.status_code == 403:
-                raise P2PForbidden(resp.url, request_log)
+                raise P2PForbidden(resp.url, request_log, curl)
             try:
                 resp.json()
             except ValueError:
                 pass
-            raise P2PException(resp.content, request_log)
+            raise P2PException(resp.content, request_log, curl)
         return request_log
 
     @retry(P2PRetryableError)
     def get(self, url, query=None, if_modified_since=None):
         if query is not None:
             url += '?' + utils.dict_to_qs(query)
-        log.debug("GET: %s" % url)
+
         resp = self.s.get(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
             verify=True
         )
+
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][GET] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][GET] %s" % url)
+
         resp_log = self._check_for_errors(resp, url)
         try:
             ret = utils.parse_response(resp.json())
@@ -1140,16 +1159,22 @@ class P2P(object):
                 ret['etag'] = resp.headers['ETag']
             return ret
         except ValueError:
-            log.error('JSON VALUE ERROR ON SUCCESSFUL RESPONSE %s' % resp_log)
+            log.error('[P2P][GET] JSON VALUE ERROR ON SUCCESSFUL RESPONSE %s' % resp_log)
             raise
 
     @retry(P2PRetryableError)
     def delete(self, url):
-        log.debug("GET: %s" % url)
         resp = self.s.delete(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(),
             verify=True)
+
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][DELETE] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][DELETE] %s" % url)
 
         self._check_for_errors(resp, url)
         return utils.parse_response(resp.content)
@@ -1157,13 +1182,19 @@ class P2P(object):
     @retry(P2PRetryableError)
     def post_json(self, url, data):
         payload = json.dumps(utils.parse_request(data))
-        log.debug("GET: %s" % url)
         resp = self.s.post(
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
             verify=True
         )
+
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][POST] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][POST] %s" % url)
 
         resp_log = self._check_for_errors(resp, url)
 
@@ -1173,7 +1204,7 @@ class P2P(object):
             try:
                 return utils.parse_response(resp.json())
             except Exception:
-                log.error('EXCEPTION IN JSON PARSE: %s' % resp_log)
+                log.error('[P2P][POST] EXCEPTION IN JSON PARSE: %s' % resp_log)
                 raise
 
     @retry(P2PRetryableError)
@@ -1186,6 +1217,13 @@ class P2P(object):
             verify=True
         )
 
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][PUT] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][PUT] %s" % url)
+
         resp_log = self._check_for_errors(resp, url)
 
         if resp.content == "" and resp.status_code < 400:
@@ -1195,5 +1233,5 @@ class P2P(object):
                 print resp.__dict__
                 return utils.parse_response(resp.json())
             except Exception:
-                log.error('EXCEPTION IN JSON PARSE: %s' % resp_log)
+                log.error('[P2P][POST] EXCEPTION IN JSON PARSE: %s' % resp_log)
                 raise
