@@ -708,6 +708,31 @@ class P2P(object):
             pass
         return ret
 
+    def get_content_item_revision_list(self, slug):
+        """
+        Accepts a slug and returns a list of revision dictionaries
+        """
+        ret = self.get('/content_items/%s/revisions.json' % slug)
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return ret
+
+    def get_content_item_revision_number(self, slug, number):
+        """
+        Accepts a slug and a revision number, returns dict with
+        full content item information for that revision
+        """
+        ret = self.get(
+            '/content_items/%s/revisions/%d.json?include=programmed_custom_params' 
+            % slug, number)
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return ret
+
     def push_into_content_item(self, slug, content_item_slugs):
         """
         Push a list of content item slugs onto the top of the related
