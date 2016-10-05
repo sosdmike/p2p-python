@@ -487,6 +487,12 @@ class P2P(object):
             'content_item_state_code': 'junk'
         })
 
+    def get_kickers(self, params):
+        """
+        Retrieves all kickers for an affiliate.
+        """
+        return self.get("/kickers.json", params)
+
     def search(self, params):
         """
         Searches P2P content items based on whatever is in the mystery params dictionary.

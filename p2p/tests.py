@@ -364,6 +364,10 @@ class StoryAndPhotoTest(BaseP2PTest):
         for k in ('title', 'id', 'slug'):
             self.assertIn(k, data['related_items'][0]['content_item'])
 
+    def test_get_kickers(self):
+        data = self.p2p.get_kickers({"product_affiliate_code":"lanews"})
+        self.assertEqual(type(data["kickers"]), list)
+
     def test_get_section(self):
         data = self.p2p.get_section('/local')
         self.assertEqual(type(data), dict)
