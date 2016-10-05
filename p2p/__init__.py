@@ -725,14 +725,17 @@ class P2P(object):
             pass
         return ret
 
-    def get_content_item_revision_number(self, slug, number):
+    def get_content_item_revision_number(self, slug, number, query=None):
         """
         Accepts a slug and a revision number, returns dict with
         full content item information for that revision
         """
+        if not query:
+            query = self.default_content_item_query
+
         ret = self.get(
-            '/content_items/%s/revisions/%d.json?include=programmed_custom_params' 
-            % slug, number)
+            '/content_items/%s/revisions/%d.json'  
+            % (slug, number), query)
         try:
             self.cache.remove_content_item(slug)
         except NotImplementedError:
