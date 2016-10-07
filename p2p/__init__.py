@@ -714,11 +714,12 @@ class P2P(object):
             pass
         return ret
 
-    def get_content_item_revision_list(self, slug):
+    def get_content_item_revision_list(self, slug, page):
         """
         Accepts a slug and returns a list of revision dictionaries
+        Page should be a dict with the key 'page' and the desired number
         """
-        ret = self.get('/content_items/%s/revisions.json' % slug)
+        ret = self.get('/content_items/%s/revisions.json?page=%d' % (slug, page))
         try:
             self.cache.remove_content_item(slug)
         except NotImplementedError:

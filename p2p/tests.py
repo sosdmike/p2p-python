@@ -366,7 +366,7 @@ class StoryAndPhotoTest(BaseP2PTest):
 
     def test_get_revision_list_and_number(self):
         data = self.p2p.get_content_item_revision_list(
-            self.first_test_story_slug,
+            self.first_test_story_slug, 1
         )
         self.assertEqual(type(data["revisions"]), list)
         number = data["revisions"][1]["number"]
