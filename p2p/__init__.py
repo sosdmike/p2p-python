@@ -726,22 +726,50 @@ class P2P(object):
             pass
         return ret
 
-    def get_content_item_revision_number(self, slug, number, query=None):
+    def get_content_item_revision_number(self, slug, number, query=None, related_items_query=None):
         """
         Accepts a slug and a revision number, returns dict with
         full content item information for that revision
         """
-        if not query:
+        if query is None:
             query = self.default_content_item_query
 
-        ret = self.get(
+        if related_items_query is None:
+            related_items_query = self.default_content_item_query
+
+        content_item = self.get(
             '/content_items/%s/revisions/%d.json'  
             % (slug, number), query)
+
+        # Drop unnecessary outer layer
+        content_item = content_item['content_item']
+
+        # We have our content item, now loop through the related
+        # items, build a list of content item ids, and retrieve them all
+        print content_item
+        ids = [item_stub['relatedcontentitem_id']
+            for item_stub in content_item['related_items']
+        ]
+
+        related_items = self.get_multi_content_items(
+            ids, related_items_query, False)
+
+        # now that we've retrieved all the related items, embed them into
+        # the original content item dictionary to make it fancy
+        for item_stub in content_item['related_items']:
+            item_stub['content_item'] = None
+            for item in related_items:
+                if (
+                    item is not None and
+                    item_stub['relatedcontentitem_id'] == item['id']
+                ):
+                    item_stub['content_item'] = item
+
         try:
             self.cache.remove_content_item(slug)
         except NotImplementedError:
             pass
-        return ret
+        return content_item
 
     def push_into_content_item(self, slug, content_item_slugs):
         """
