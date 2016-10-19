@@ -746,7 +746,6 @@ class P2P(object):
 
         # We have our content item, now loop through the related
         # items, build a list of content item ids, and retrieve them all
-        print content_item
         ids = [item_stub['relatedcontentitem_id']
             for item_stub in content_item['related_items']
         ]
