@@ -317,6 +317,30 @@ class P2P(object):
         """
         content = content_item.copy()
 
+        """
+        To handle topics in bulk we have to add another key in the
+        final payload:
+        {
+          "add_topic_ids": [
+            "topic_id_1",
+            "topic_id_2"
+          ],
+          "content_item": {
+            "title": "foo",
+            ...
+          }
+        }
+        We need to process the data sent by the client differenly in
+        order to handle the above case and the original, normal content
+        item case.
+        """
+        if 'content_item' in content:
+            content = content['content_item'].copy()
+            data = content_item.copy()
+        else:
+            data = {'content_item': content }
+
+        # if a slug was given, remove it from the content item
         if slug is None:
             slug = content.pop('slug')
 
@@ -325,14 +349,16 @@ class P2P(object):
         except KeyError:
             pass
 
-        d = {'content_item': content}
+        # Now that we've manipulated the content item, update
+        # the payload as well
+        data['content_item'] = content
 
         url = "/content_items/%s.json"
         url = url % slug
         if not self.preserve_embedded_tags:
             url += "?preserve_embedded_tags=false"
 
-        resp = self.put_json(url, d)
+        resp = self.put_json(url, data)
 
         try:
             self.cache.remove_content_item(slug)
@@ -379,6 +405,16 @@ class P2P(object):
             'custom_param_data': {'metadata-robots': 'noindex, nofollow'},
         }
         return self.update_content_item(params, slug=slug)
+
+    def search_topics(self, name):
+        """
+        Searches P2P for topics starting with the given name
+        """
+        params = {
+            'name': name,
+            'name_contains': True,
+        }
+        return self.get("/topics.json", params)
 
     def add_topic(self, topic_id, slug=None):
         """
@@ -435,11 +471,18 @@ class P2P(object):
         Takes a single dictionary representing the new content item.
         Refer to the P2P API docs for the content item field names.
         """
+        defaults = self.content_item_defaults.copy()
         content = content_item.copy()
 
-        defaults = self.content_item_defaults.copy()
-        defaults.update(content)
-        data = {'content_item': defaults}
+        if 'content_item' in content:
+            item = content['content_item'].copy()
+            defaults.update(item)
+            content['content_item'] = defaults
+            data = content
+        else:
+            content = content_item.copy()
+            defaults.update(content)
+            data = {'content_item': defaults}
 
         url = '/content_items.json'
         if not self.preserve_embedded_tags:
@@ -738,7 +781,7 @@ class P2P(object):
             related_items_query = self.default_content_item_query
 
         content_item = self.get(
-            '/content_items/%s/revisions/%d.json'  
+            '/content_items/%s/revisions/%d.json'
             % (slug, number), query)
 
         # Drop unnecessary outer layer
