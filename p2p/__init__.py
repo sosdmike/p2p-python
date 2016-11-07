@@ -317,23 +317,6 @@ class P2P(object):
         """
         content = content_item.copy()
 
-        """
-        To handle topics in bulk we have to add another key in the
-        final payload:
-        {
-          "add_topic_ids": [
-            "topic_id_1",
-            "topic_id_2"
-          ],
-          "content_item": {
-            "title": "foo",
-            ...
-          }
-        }
-        We need to process the data sent by the client differenly in
-        order to handle the above case and the original, normal content
-        item case.
-        """
         if 'content_item' in content:
             content = content['content_item'].copy()
             data = content_item.copy()
