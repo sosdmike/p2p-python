@@ -113,17 +113,15 @@ Remove a topic from a story. Provide the slug of the content item you'd like to 
 
 #### Bulk Topics
 
-To handle topics in bulk we have to add another key to the final payload to CS.
-a standard `content_item` param for create_content_item() or update_content_item()
-looks like so:
+To handle topics in bulk we have to add another key to the final payload to Content Services. The functions `create_content_item()` and `update_content_item()` accept a param called `content_item` that contains
+the payload to be processed and sent to Content Services. Normally `content_item` looks like so:
 `{
-  "content_item": {
-    "slug": "la-test-slug-00000000",
-    "title": "Test Story"
-  }
+  "slug": "la-test-slug-00000000",
+  "title": "Test Story",
+  ...
 }`
 
-To process topics in bulk, 2 keys can be added to the `content_item` param:
+To process topics in bulk, 2 keys can be added to `content_item` param:
 `{
   "add_topic_ids": [
     "topic_id_1",
@@ -135,7 +133,8 @@ To process topics in bulk, 2 keys can be added to the `content_item` param:
   ],
   "content_item": {
     "slug": "la-test-slug-00000000",
-    "title": "Test Story"
+    "title": "Test Story",
+    ...
   }
 }`
 
