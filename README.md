@@ -101,6 +101,8 @@ Add metadata to the item so it is hidden from robots using the noindex and nofol
 
 ### Topics
 
+#### Single Topics
+
 `add_topic(topic_id, slug=None)`
 
 Adds a topic to a story. Provide the slug of the content item you'd like to update.
@@ -109,6 +111,33 @@ Adds a topic to a story. Provide the slug of the content item you'd like to upda
 
 Remove a topic from a story. Provide the slug of the content item you'd like to update.
 
+#### Bulk Topics
+
+To handle topics in bulk we have to add another key to the final payload to CS.
+a standard `content_item` param for create_content_item() or update_content_item()
+looks like so:
+`{
+  "content_item": {
+    "slug": "la-test-slug-00000000",
+    "title": "Test Story"
+  }
+}`
+
+To process topics in bulk, 2 keys can be added to the `content_item` param:
+`{
+  "add_topic_ids": [
+    "topic_id_1",
+    "topic_id_2"
+  ],
+  "remove_topic_ids": [
+    "topic_id_3",
+    "topic_id_4"
+  ],
+  "content_item": {
+    "slug": "la-test-slug-00000000",
+    "title": "Test Story"
+  }
+}`
 
 ### Search
 
