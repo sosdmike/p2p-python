@@ -373,7 +373,7 @@ class StoryAndPhotoTest(BaseP2PTest):
         data2 = self.p2p.get_content_item_revision_number(
             self.first_test_story_slug, number
         )
-        self.assertEqual(type(data2["content_item"]), dict)
+        self.assertEqual(type(data2), dict)
 
     def test_get_kickers(self):
         data = self.p2p.get_kickers({"product_affiliate_code":"lanews"})
