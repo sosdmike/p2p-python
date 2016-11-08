@@ -113,15 +113,16 @@ Remove a topic from a story. Provide the slug of the content item you'd like to 
 
 #### Bulk Topics
 
-To handle topics in bulk we have to add another key to the final payload to Content Services. The functions `create_content_item()` and `update_content_item()` accept a param called `content_item` that contains
-the payload to be processed and sent to Content Services. Normally `content_item` looks like so:
+To handle topics in bulk we have to add two keys to the final payload to Content Services. The functions `create_content_item()` and `update_content_item()` accept a param called `payload`. To send a content item
+to P2P the payload can be a flat structure like so:
 `{
-  "slug": "la-test-slug-00000000",
-  "title": "Test Story",
-  ...
+    "slug": "la-test-slug-00000000",
+    "title": "Test Story",
+    ...
 }`
 
-To process topics in bulk, 2 keys can be added to `content_item` param:
+To add/remove topics in bulk we need to nest the content item data inside a `content_item` key inside
+`payload` and add two other keys to `payload` called `add_topic_ids` and `remove_topic_ids`:
 `{
   "add_topic_ids": [
     "topic_id_1",

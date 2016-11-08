@@ -303,7 +303,7 @@ class P2P(object):
 
         return ret
 
-    def update_content_item(self, content_item, slug=None):
+    def update_content_item(self, payload, slug=None):
         """
         Update a content item.
 
@@ -315,11 +315,12 @@ class P2P(object):
         parameter in case the dictionary does not contain a 'slug' key or if
         the dictionary contains a changed slug.
         """
-        content = content_item.copy()
+        content = payload.copy()
 
+        # Check if content_item is nested or if this is a flat data structure
         if 'content_item' in content:
             content = content['content_item'].copy()
-            data = content_item.copy()
+            data = payload.copy()
         else:
             data = {'content_item': content }
 
@@ -447,7 +448,7 @@ class P2P(object):
         except NotImplementedError:
             pass
 
-    def create_content_item(self, content_item):
+    def create_content_item(self, payload):
         """
         Create a new content item.
 
@@ -455,15 +456,16 @@ class P2P(object):
         Refer to the P2P API docs for the content item field names.
         """
         defaults = self.content_item_defaults.copy()
-        content = content_item.copy()
+        content = payload.copy()
 
+        # Check if content_item is nested or if this is a flat data structure
         if 'content_item' in content:
             item = content['content_item'].copy()
             defaults.update(item)
             content['content_item'] = defaults
             data = content
         else:
-            content = content_item.copy()
+            content = payload.copy()
             defaults.update(content)
             data = {'content_item': defaults}
 
