@@ -738,7 +738,7 @@ class P2P(object):
             related_items_query = self.default_content_item_query
 
         content_item = self.get(
-            '/content_items/%s/revisions/%d.json'  
+            '/content_items/%s/revisions/%d.json'
             % (slug, number), query)
 
         # Drop unnecessary outer layer
@@ -1115,6 +1115,39 @@ class P2P(object):
                 'path': path
             })
         return nav
+
+    def get_product_affiliates(self, min_date=None, max_date=None):
+        """
+        Retrieves a one or more of product affiliate codes
+        Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
+        """
+
+        # Default max_date to today if non given
+        if not max_date:
+            max_date = datetime.date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
+
+        params = {
+            'minimum_date': min_date,
+            'maximum_date': max_date
+        }
+
+        return self.get("/product_affiliates/multi.json", params)
+
+    def get_source_product_affiliates(self, name='', code=None):
+        """
+        Retrieves one or more affiliate source codes.
+        """
+
+        # If the args are empty, default to our current market
+        if not name and not code:
+            code = self.product_affiliate_code
+
+        params = {
+            'name': name,
+            'code': code
+        }
+
+        return self.get("/source_product_affiliates/multi.json", params)
 
     # Utilities
     def http_headers(self, content_type=None, if_modified_since=None):
