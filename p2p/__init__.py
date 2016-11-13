@@ -1116,7 +1116,7 @@ class P2P(object):
             })
         return nav
 
-    def get_product_affiliates(self, min_date=None, max_date=None):
+    def get_source_product_affiliates(self, min_date='', max_date=''):
         """
         Retrieves a one or more of product affiliate codes
         Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
@@ -1131,23 +1131,34 @@ class P2P(object):
             'maximum_date': max_date
         }
 
-        return self.get("/product_affiliates/multi.json", params)
+        return self.get("/source_product_affiliates/multi.json", params)
 
-    def get_source_product_affiliates(self, name='', code=None):
+    def get_product_affiliates(self, name='', code=''):
         """
         Retrieves one or more affiliate source codes.
         """
 
-        # If the args are empty, default to our current market
-        if not name and not code:
-            code = self.product_affiliate_code
+        if name and name != 'all':
+            params = {
+                'name': str(name)
+            }
+        elif name and name == 'all':
+            params = {
+                'name': ''
+            }
+        elif code:
+            params = {
+                'code': str(code)
+            }
+        # If the args are empty, get everything
+        elif not name and not code:
+            params = {
+                'code': self.product_affiliate_code
+            }
 
-        params = {
-            'name': name,
-            'code': code
-        }
+        print params
 
-        return self.get("/source_product_affiliates/multi.json", params)
+        return self.get("/product_affiliates/multi.json", params)
 
     # Utilities
     def http_headers(self, content_type=None, if_modified_since=None):
