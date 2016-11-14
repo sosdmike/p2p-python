@@ -1126,12 +1126,15 @@ class P2P(object):
         if not max_date:
             max_date = datetime.date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
 
+        print max_date
+
         params = {
             'minimum_date': min_date,
             'maximum_date': max_date
         }
 
-        return self.get("/source_product_affiliates/multi.json", params)
+        # return self.get("/source_product_affiliates/multi.json", params)
+        return []
 
     def get_product_affiliates(self, name='', code=''):
         """
