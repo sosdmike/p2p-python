@@ -101,6 +101,8 @@ Add metadata to the item so it is hidden from robots using the noindex and nofol
 
 ### Topics
 
+#### Single Topics
+
 `add_topic(topic_id, slug=None)`
 
 Adds a topic to a story. Provide the slug of the content item you'd like to update.
@@ -109,6 +111,33 @@ Adds a topic to a story. Provide the slug of the content item you'd like to upda
 
 Remove a topic from a story. Provide the slug of the content item you'd like to update.
 
+#### Bulk Topics
+
+To handle topics in bulk we have to add two keys to the final payload to Content Services. The functions `create_content_item()` and `update_content_item()` accept a param called `payload`. To send a content item
+to P2P the payload can be a flat structure like so:
+`{
+    "slug": "la-test-slug-00000000",
+    "title": "Test Story",
+    ...
+}`
+
+To add/remove topics in bulk we need to nest the content item data inside a `content_item` key inside
+`payload` and add two other keys to `payload` called `add_topic_ids` and `remove_topic_ids`:
+`{
+  "add_topic_ids": [
+    "topic_id_1",
+    "topic_id_2"
+  ],
+  "remove_topic_ids": [
+    "topic_id_3",
+    "topic_id_4"
+  ],
+  "content_item": {
+    "slug": "la-test-slug-00000000",
+    "title": "Test Story",
+    ...
+  }
+}`
 
 ### Search
 

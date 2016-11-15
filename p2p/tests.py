@@ -109,13 +109,47 @@ class StoryAndPhotoTest(BaseP2PTest):
         # Story
         self.p2p.create_or_update_content_item({
             "slug": self.first_test_story_slug,
-            "title": "Test content item"
+            "title": "Test content item",
+            "content_item_state_code": "working"
         })
         # HTML story
         self.p2p.create_or_update_content_item({
             "slug": self.test_htmlstory_slug,
             "title": "Test HTML story"
         })
+
+    def test_create_or_update_content_item_with_topics(self):
+        topics = ["PEBSL000163","PEPLT007433"]
+
+        # Add topics to the story
+        self.p2p.create_or_update_content_item({
+            "add_topic_ids": topics,
+            "content_item": {
+                "slug": self.first_test_story_slug,
+            },
+        })
+
+        # Add content_topics to our content item query
+        query = self.p2p.default_content_item_query
+        query["include"].append("content_topics")
+
+        # Make sure the topics were added correctly
+        data = self.p2p.get_fancy_content_item(self.first_test_story_slug, query=query)
+        content_topics = data["content_topics"]
+        self.assertEqual(len(content_topics), 2)
+
+        # Now let's remove the topics
+        self.p2p.create_or_update_content_item({
+            "remove_topic_ids": topics,
+            "content_item": {
+                "slug": self.first_test_story_slug,
+            },
+        })
+
+        # Make sure the topics were removed correctly
+        data = self.p2p.get_fancy_content_item(self.first_test_story_slug, query=query)
+        content_topics = data["content_topics"]
+        self.assertEqual(len(content_topics), 0)
 
     def test_get_content_item(self):
         # Story
@@ -373,7 +407,7 @@ class StoryAndPhotoTest(BaseP2PTest):
         data2 = self.p2p.get_content_item_revision_number(
             self.first_test_story_slug, number
         )
-        self.assertEqual(type(data2["content_item"]), dict)
+        self.assertEqual(type(data2), dict)
 
     def test_get_kickers(self):
         data = self.p2p.get_kickers({"product_affiliate_code":"lanews"})
