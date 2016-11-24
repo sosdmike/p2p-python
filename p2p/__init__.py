@@ -487,6 +487,21 @@ class P2P(object):
             'content_item_state_code': 'junk'
         })
 
+    def content_item_exists(self, slug):
+        """
+        Checks for the existance of a slug in content services
+        """
+        exists = False
+        try:
+            _ = self.get("/content_items/%s/exists" % (slug))
+        except P2PNotFound:
+            exists = False
+        except ValueError:
+            # The return from this function is not valid json,
+            # therefore a value error is thrown.
+            exists = True
+        return exists
+
     def search(self, params):
         """
         Searches P2P content items based on whatever is in the mystery params dictionary.
