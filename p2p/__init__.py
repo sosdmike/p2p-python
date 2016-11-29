@@ -1127,8 +1127,6 @@ class P2P(object):
         if not max_date:
             max_date = date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
 
-        print max_date
-
         params = {
             'page': page,
             'minimum_date': min_date,
