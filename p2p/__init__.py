@@ -9,6 +9,7 @@ from copy import deepcopy
 from cache import NoCache
 from decorators import retry
 from datetime import datetime
+from datetime import date
 from .adapters import TribAdapter
 from wsgiref.handlers import format_date_time
 from .errors import (
@@ -1116,7 +1117,7 @@ class P2P(object):
             })
         return nav
 
-    def get_source_product_affiliates(self, min_date='', max_date=''):
+    def get_source_product_affiliates(self, min_date='', max_date='', page=1):
         """
         Retrieves a one or more of product affiliate codes
         Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
@@ -1124,17 +1125,17 @@ class P2P(object):
 
         # Default max_date to today if non given
         if not max_date:
-            max_date = datetime.date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
+            max_date = date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
 
         print max_date
 
         params = {
+            'page': page,
             'minimum_date': min_date,
             'maximum_date': max_date
         }
 
-        # return self.get("/source_product_affiliates/multi.json", params)
-        return []
+        return self.get("/source_product_affiliates/multi.json", params)
 
     def get_product_affiliates(self, name='', code=''):
         """
@@ -1158,8 +1159,6 @@ class P2P(object):
             params = {
                 'code': self.product_affiliate_code
             }
-
-        print params
 
         return self.get("/product_affiliates/multi.json", params)
 
