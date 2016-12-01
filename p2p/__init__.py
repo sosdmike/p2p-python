@@ -303,7 +303,7 @@ class P2P(object):
 
         return ret
 
-    def update_content_item(self, content_item, slug=None):
+    def update_content_item(self, payload, slug=None):
         """
         Update a content item.
 
@@ -315,8 +315,16 @@ class P2P(object):
         parameter in case the dictionary does not contain a 'slug' key or if
         the dictionary contains a changed slug.
         """
-        content = content_item.copy()
+        content = payload.copy()
 
+        # Check if content_item is nested or if this is a flat data structure
+        if 'content_item' in content:
+            content = content['content_item'].copy()
+            data = payload.copy()
+        else:
+            data = {'content_item': content }
+
+        # if a slug was given, remove it from the content item
         if slug is None:
             slug = content.pop('slug')
 
@@ -325,14 +333,16 @@ class P2P(object):
         except KeyError:
             pass
 
-        d = {'content_item': content}
+        # Now that we've manipulated the content item, update
+        # the payload as well
+        data['content_item'] = content
 
         url = "/content_items/%s.json"
         url = url % slug
         if not self.preserve_embedded_tags:
             url += "?preserve_embedded_tags=false"
 
-        resp = self.put_json(url, d)
+        resp = self.put_json(url, data)
 
         try:
             self.cache.remove_content_item(slug)
@@ -379,6 +389,16 @@ class P2P(object):
             'custom_param_data': {'metadata-robots': 'noindex, nofollow'},
         }
         return self.update_content_item(params, slug=slug)
+
+    def search_topics(self, name):
+        """
+        Searches P2P for topics starting with the given name
+        """
+        params = {
+            'name': name,
+            'name_contains': True,
+        }
+        return self.get("/topics.json", params)
 
     def add_topic(self, topic_id, slug=None):
         """
@@ -428,18 +448,26 @@ class P2P(object):
         except NotImplementedError:
             pass
 
-    def create_content_item(self, content_item):
+    def create_content_item(self, payload):
         """
         Create a new content item.
 
         Takes a single dictionary representing the new content item.
         Refer to the P2P API docs for the content item field names.
         """
-        content = content_item.copy()
-
         defaults = self.content_item_defaults.copy()
-        defaults.update(content)
-        data = {'content_item': defaults}
+        content = payload.copy()
+
+        # Check if content_item is nested or if this is a flat data structure
+        if 'content_item' in content:
+            item = content['content_item'].copy()
+            defaults.update(item)
+            content['content_item'] = defaults
+            data = content
+        else:
+            content = payload.copy()
+            defaults.update(content)
+            data = {'content_item': defaults}
 
         url = '/content_items.json'
         if not self.preserve_embedded_tags:
@@ -501,6 +529,13 @@ class P2P(object):
             # therefore a value error is thrown.
             exists = True
         return exists
+
+    def get_kickers(self, params):
+        """
+        Retrieves all kickers for an affiliate.
+        """
+        return self.get("/kickers.json", params)
+
 
     def search(self, params):
         """
@@ -722,6 +757,62 @@ class P2P(object):
         except NotImplementedError:
             pass
         return ret
+
+    def get_content_item_revision_list(self, slug, page):
+        """
+        Accepts a slug and returns a list of revision dictionaries
+        Page should be a dict with the key 'page' and the desired number
+        """
+        ret = self.get('/content_items/%s/revisions.json?page=%d' % (slug, page))
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return ret
+
+    def get_content_item_revision_number(self, slug, number, query=None, related_items_query=None):
+        """
+        Accepts a slug and a revision number, returns dict with
+        full content item information for that revision
+        """
+        if query is None:
+            query = self.default_content_item_query
+
+        if related_items_query is None:
+            related_items_query = self.default_content_item_query
+
+        content_item = self.get(
+            '/content_items/%s/revisions/%d.json'
+            % (slug, number), query)
+
+        # Drop unnecessary outer layer
+        content_item = content_item['content_item']
+
+        # We have our content item, now loop through the related
+        # items, build a list of content item ids, and retrieve them all
+        ids = [item_stub['relatedcontentitem_id']
+            for item_stub in content_item['related_items']
+        ]
+
+        related_items = self.get_multi_content_items(
+            ids, related_items_query, False)
+
+        # now that we've retrieved all the related items, embed them into
+        # the original content item dictionary to make it fancy
+        for item_stub in content_item['related_items']:
+            item_stub['content_item'] = None
+            for item in related_items:
+                if (
+                    item is not None and
+                    item_stub['relatedcontentitem_id'] == item['id']
+                ):
+                    item_stub['content_item'] = item
+
+        try:
+            self.cache.remove_content_item(slug)
+        except NotImplementedError:
+            pass
+        return content_item
 
     def push_into_content_item(self, slug, content_item_slugs):
         """
@@ -1082,6 +1173,12 @@ class P2P(object):
         return h
 
     def _check_for_errors(self, resp, req_url):
+        """
+        Parses the P2P response, scanning and raising for exceptions. When an
+        exception is raised, its message will contain the response url, a curl
+        string of the request and a dictionary of response data.
+        """
+        curl = utils.request_to_curl(resp.request)
         request_log = {
             'REQ_URL': req_url,
             'REQ_HEADERS': self.http_headers(),
@@ -1089,65 +1186,78 @@ class P2P(object):
             'STATUS': resp.status_code,
             'RESP_BODY': resp.content,
             'RESP_HEADERS': resp.headers,
+            # The time taken between sending the first byte of
+            # the request and finishing parsing the response headers
+            'SECONDS_ELAPSED': resp.elapsed.total_seconds()
         }
 
         if self.debug:
-            for k, v in request_log.items():
-                log.debug('%s: %s' % (k, v))
+            log.debug("[P2P][RESPONSE] %s" % request_log)
 
         if resp.status_code >= 500:
             try:
                 if u'ORA-00001: unique constraint' in resp.content:
-                    raise P2PUniqueConstraintViolated(resp.url, request_log)
+                    raise P2PUniqueConstraintViolated(resp.url, request_log, \
+curl)
                 elif u'incompatible encoding regexp match' in resp.content:
-                    raise P2PEncodingMismatch(resp.url, request_log)
+                    raise P2PEncodingMismatch(resp.url, request_log, curl)
                 elif u'unknown attribute' in resp.content:
-                    raise P2PUnknownAttribute(resp.url, request_log)
+                    raise P2PUnknownAttribute(resp.url, request_log, curl)
                 elif u"Invalid access definition" in resp.content:
-                    raise P2PInvalidAccessDefinition(resp.url, request_log)
+                    raise P2PInvalidAccessDefinition(resp.url, request_log, \
+curl)
                 elif u"solr.tila.trb" in resp.content:
-                    raise P2PSearchError(resp.url, request_log)
+                    raise P2PSearchError(resp.url, request_log, curl)
                 elif u"Request Timeout" in resp.content:
-                    raise P2PTimeoutError(resp.url, request_log)
+                    raise P2PTimeoutError(resp.url, request_log, curl)
                 elif u'Duplicate entry' in resp.content:
-                    raise P2PUniqueConstraintViolated(resp.url, request_log)
+                    raise P2PUniqueConstraintViolated(resp.url, request_log, \
+curl)
                 elif (u'Failed to upload image to the photo service'
                         in resp.content):
-                    raise P2PPhotoUploadError(resp.url, request_log)
+                    raise P2PPhotoUploadError(resp.url, request_log, curl)
                 elif u"This file type is not supported" in resp.content:
-                    raise P2PInvalidFileType(resp.url, request_log)
+                    raise P2PInvalidFileType(resp.url, request_log, curl)
+
                 data = resp.json()
-                if 'errors' in data:
-                    raise P2PException(data['errors'][0], request_log)
+
             except ValueError:
                 pass
-            raise P2PException(resp.url, request_log)
+            raise P2PException(resp.url, request_log, curl)
         elif resp.status_code == 404:
-            raise P2PNotFound(resp.url, request_log)
+            raise P2PNotFound(resp.url, request_log, curl)
         elif resp.status_code >= 400:
             if u'{"slug":["has already been taken"]}' in resp.content:
-                raise P2PSlugTaken(resp.url, request_log)
+                raise P2PSlugTaken(resp.url, request_log, curl)
             elif u'{"code":["has already been taken"]}' in resp.content:
-                raise P2PSlugTaken(resp.url, request_log)
+                raise P2PSlugTaken(resp.url, request_log, curl)
             elif resp.status_code == 403:
-                raise P2PForbidden(resp.url, request_log)
+                raise P2PForbidden(resp.url, request_log, curl)
             try:
                 resp.json()
             except ValueError:
                 pass
-            raise P2PException(resp.content, request_log)
+            raise P2PException(resp.content, request_log, curl)
         return request_log
 
     @retry(P2PRetryableError)
     def get(self, url, query=None, if_modified_since=None):
         if query is not None:
             url += '?' + utils.dict_to_qs(query)
-        log.debug("GET: %s" % url)
+
         resp = self.s.get(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
             verify=True
         )
+
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][GET] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][GET] %s" % url)
+
         resp_log = self._check_for_errors(resp, url)
         try:
             ret = utils.parse_response(resp.json())
@@ -1155,16 +1265,22 @@ class P2P(object):
                 ret['etag'] = resp.headers['ETag']
             return ret
         except ValueError:
-            log.error('JSON VALUE ERROR ON SUCCESSFUL RESPONSE %s' % resp_log)
+            log.error('[P2P][GET] JSON VALUE ERROR ON SUCCESSFUL RESPONSE %s' % resp_log)
             raise
 
     @retry(P2PRetryableError)
     def delete(self, url):
-        log.debug("GET: %s" % url)
         resp = self.s.delete(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(),
             verify=True)
+
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][DELETE] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][DELETE] %s" % url)
 
         self._check_for_errors(resp, url)
         return utils.parse_response(resp.content)
@@ -1172,13 +1288,19 @@ class P2P(object):
     @retry(P2PRetryableError)
     def post_json(self, url, data):
         payload = json.dumps(utils.parse_request(data))
-        log.debug("GET: %s" % url)
         resp = self.s.post(
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
             verify=True
         )
+
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][POST] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][POST] %s" % url)
 
         resp_log = self._check_for_errors(resp, url)
 
@@ -1188,7 +1310,7 @@ class P2P(object):
             try:
                 return utils.parse_response(resp.json())
             except Exception:
-                log.error('EXCEPTION IN JSON PARSE: %s' % resp_log)
+                log.error('[P2P][POST] EXCEPTION IN JSON PARSE: %s' % resp_log)
                 raise
 
     @retry(P2PRetryableError)
@@ -1201,6 +1323,13 @@ class P2P(object):
             verify=True
         )
 
+        # Log the request curl if debug is on
+        if self.debug:
+            log.debug("[P2P][PUT] %s" % utils.request_to_curl(resp.request))
+        # If debug is off, store a light weight log
+        else:
+            log.debug("[P2P][PUT] %s" % url)
+
         resp_log = self._check_for_errors(resp, url)
 
         if resp.content == "" and resp.status_code < 400:
@@ -1210,5 +1339,5 @@ class P2P(object):
                 print resp.__dict__
                 return utils.parse_response(resp.json())
             except Exception:
-                log.error('EXCEPTION IN JSON PARSE: %s' % resp_log)
+                log.error('[P2P][POST] EXCEPTION IN JSON PARSE: %s' % resp_log)
                 raise

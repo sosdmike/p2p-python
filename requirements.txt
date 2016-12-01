@@ -9,3 +9,5 @@ python-dateutil
 pytz
 requests
 six
+twine
+wheel

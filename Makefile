@@ -1,4 +1,4 @@
-.PHONY: test testcollectionsearch
+.PHONY: test ship testcollectionsearch
 
 name='foo'
 
@@ -12,3 +12,7 @@ test:
 		echo "Running provided test";\
 		python -m unittest p2p.tests.TestP2P.$(name);\
 	fi
+
+ship:
+	python setup.py sdist bdist_wheel
+	twine upload dist/* --skip-existing

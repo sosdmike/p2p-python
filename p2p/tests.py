@@ -10,107 +10,146 @@ from p2p import (
 pp = pprint.PrettyPrinter(indent=4)
 
 
-class TestP2P(unittest.TestCase):
+class BaseP2PTest(unittest.TestCase):
+    content_item_keys = (
+        'altheadline', 'expire_time',
+        'canonical_url', 'mobile_title', 'create_time',
+        'source_name', 'last_modified_time', 'seodescription',
+        'exclusivity', 'content_type_group_code', 'byline',
+        'title', 'dateline', 'brief', 'id', 'web_url', 'body',
+        'display_time', 'publish_time', 'undated', 'is_opinion',
+        'columnist_id', 'live_time', 'titleline',
+        'ad_exclusion_category', 'product_affiliate_code',
+        'content_item_state_code', 'seo_redirect_url', 'slug',
+        'content_item_type_code', 'deckheadline', 'seo_keyphrase',
+        'mobile_highlights', 'subheadline', 'thumbnail_url',
+        'source_code', 'ad_keywords', 'seotitle', 'alt_thumbnail_url'
+    )
+    collection_keys = (
+        'created_at', 'code', 'name',
+        'sequence', 'max_elements', 'productaffiliatesection_id',
+        'last_modified_time', 'collection_type_code',
+        'exclusivity', 'id'
+    )
+    content_layout_keys = (
+        'code', 'items', 'last_modified_time', 'collection_id', 'id'
+    )
+    content_layout_item_keys = (
+        'content_item_type_code', 'content_item_state_code',
+        'sequence', 'headline', 'abstract',
+        'productaffiliatesection_id', 'slug', 'subheadline',
+        'last_modified_time', 'contentitem_id', 'id'
+    )
+    p2p = get_connection()
+    test_story_slugs = ["la-test-p2p-python-temp-story-%s" % x for x in range(0, 8)]
+    first_test_story_slug = "la-test-p2p-python-temp-story-0"
+    test_htmlstory_slug = "la-test-p2p-python-temp-htmlstory"
+    test_photo_slug = "la-test-p2p-python-temp-photo"
+    test_collection_codes = ["la-test-p2p-python-collection-%s" % x for x in range(0, 3)]
+    first_test_collection_code = "la-test-p2p-python-collection-0"
+    second_test_collection_code = "la-test-p2p-python-collection-1"
 
-    def setUp(self):
-        self.p2p = get_connection()
-        self.p2p.debug = True
-        self.p2p.config['IMAGE_SERVICES_URL'] = 'http://image.p2p.tribuneinteractive.com'
-        self.maxDiff = None
-
-        self.content_item_keys = (
-            'altheadline', 'expire_time',
-            'canonical_url', 'mobile_title', 'create_time',
-            'source_name', 'last_modified_time', 'seodescription',
-            'exclusivity', 'content_type_group_code', 'byline',
-            'title', 'dateline', 'brief', 'id', 'web_url', 'body',
-            'display_time', 'publish_time', 'undated', 'is_opinion',
-            'columnist_id', 'live_time', 'titleline',
-            'ad_exclusion_category', 'product_affiliate_code',
-            'content_item_state_code', 'seo_redirect_url', 'slug',
-            'content_item_type_code', 'deckheadline', 'seo_keyphrase',
-            'mobile_highlights', 'subheadline', 'thumbnail_url',
-            'source_code', 'ad_keywords', 'seotitle', 'alt_thumbnail_url')
-        self.collection_keys = (
-            'created_at', 'code', 'name',
-            'sequence', 'max_elements', 'productaffiliatesection_id',
-            'last_modified_time', 'collection_type_code',
-            'exclusivity', 'id')
-        self.content_layout_keys = (
-            'code', 'items', 'last_modified_time', 'collection_id', 'id')
-        self.content_layout_item_keys = (
-            'content_item_type_code', 'content_item_state_code',
-            'sequence', 'headline', 'abstract',
-            'productaffiliatesection_id', 'slug', 'subheadline',
-            'last_modified_time', 'contentitem_id', 'id')
-
-        self.setUpTestStories()
-        self.setUpTestHTMLStories()
-        self.setUpTestPhoto()
-        self.setUpTestCollections()
-
-    def setUpTestStories(self):
+    @classmethod
+    def setUpTestStories(cls):
         # Create a bunch of test stories and store to self.test_story_slugs
-        content_item_slug_prefix = "la-test-p2p-python-temp-story-%s"
-        self.test_story_slugs = []
-        for x in range(0, 8):
-            slug = content_item_slug_prefix % x
-            self.test_story_slugs.append(slug)
-            self.p2p.create_or_update_content_item({
+        for slug in cls.test_story_slugs:
+            cls.p2p.create_or_update_content_item({
                 "slug": slug,
                 "content_item_type_code": "story",
-                "title": "Temporary content item #%s for unittesting" % x,
+                "title": "Temporary content item #%s for unittesting" % slug,
                 "body": "Placeholder body for %s" % slug
             })
-        # As a helper story the first one to self.first_test_story_slug
-        self.first_test_story_slug = self.test_story_slugs[0]
 
-    def setUpTestHTMLStories(self):
+
+    @classmethod
+    def setUpTestHTMLStories(cls):
         # Create a test htmlstory
-        self.test_htmlstory_slug = "la-test-p2p-python-temp-htmlstory"
-        self.p2p.create_or_update_content_item({
-            "slug": self.test_htmlstory_slug,
+        cls.p2p.create_or_update_content_item({
+            "slug": cls.test_htmlstory_slug,
             "content_item_type_code": "htmlstory",
             "title": "Temporary htmlstory for unittesting",
             "body": "Placeholder body for the htmlstory"
         })
 
-    def setUpTestPhoto(self):
+    @classmethod
+    def setUpTestPhoto(cls):
         # Create a test htmlstory
-        self.test_photo_slug = "la-test-p2p-python-temp-photo"
-        self.p2p.create_or_update_content_item({
-            "slug": self.test_photo_slug,
+        cls.p2p.create_or_update_content_item({
+            "slug": cls.test_photo_slug,
             "content_item_type_code": "photo",
             "title": "Temporary photo for unittesting",
         })
 
-    def setUpTestCollections(self):
-        collection_code_prefix = "la-test-p2p-python-collection-%s"
-        self.test_collection_codes = []
-        for x in range(0, 3):
-            self.test_collection_codes.append(collection_code_prefix % x)
+    @classmethod
+    def setUpTestCollections(cls):
+        for slug in cls.test_collection_codes:
             try:
-                self.p2p.get_collection_layout(collection_code_prefix % x)
+                cls.p2p.get_collection_layout(slug)
             except P2PNotFound:
-                self.p2p.create_collection({
-                    'code': collection_code_prefix % x,
-                    'name': 'Test collection #%s created via API' % x,
+                cls.p2p.create_collection({
+                    'code': slug,
+                    'name': 'Test collection #%s created via API' % slug,
                     'section_path': '/test'
                 })
-        self.first_test_collection_code = self.test_collection_codes[0]
-        self.second_test_collection_code = self.test_collection_codes[1]
+
+    def setUp(self):
+        self.p2p.debug = True
+        self.p2p.config['IMAGE_SERVICES_URL'] = 'http://image.p2p.tribuneinteractive.com'
+
+
+class StoryAndPhotoTest(BaseP2PTest):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.setUpTestStories()
+        cls.setUpTestHTMLStories()
+        cls.setUpTestPhoto()
 
     def test_create_or_update_content_item(self):
         # Story
         self.p2p.create_or_update_content_item({
             "slug": self.first_test_story_slug,
-            "title": "Test content item"
+            "title": "Test content item",
+            "content_item_state_code": "working"
         })
         # HTML story
         self.p2p.create_or_update_content_item({
             "slug": self.test_htmlstory_slug,
             "title": "Test HTML story"
         })
+
+    def test_create_or_update_content_item_with_topics(self):
+        topics = ["PEBSL000163","PEPLT007433"]
+
+        # Add topics to the story
+        self.p2p.create_or_update_content_item({
+            "add_topic_ids": topics,
+            "content_item": {
+                "slug": self.first_test_story_slug,
+            },
+        })
+
+        # Add content_topics to our content item query
+        query = self.p2p.default_content_item_query
+        query["include"].append("content_topics")
+
+        # Make sure the topics were added correctly
+        data = self.p2p.get_fancy_content_item(self.first_test_story_slug, query=query)
+        content_topics = data["content_topics"]
+        self.assertEqual(len(content_topics), 2)
+
+        # Now let's remove the topics
+        self.p2p.create_or_update_content_item({
+            "remove_topic_ids": topics,
+            "content_item": {
+                "slug": self.first_test_story_slug,
+            },
+        })
+
+        # Make sure the topics were removed correctly
+        data = self.p2p.get_fancy_content_item(self.first_test_story_slug, query=query)
+        content_topics = data["content_topics"]
+        self.assertEqual(len(content_topics), 0)
 
     def test_get_content_item(self):
         # Story
@@ -324,96 +363,6 @@ class TestP2P(unittest.TestCase):
         self.p2p.show_to_robots(result['slug'])
         self.assertTrue(self.p2p.delete_content_item(data['slug']))
 
-    def test_that_unique_contraint_exception_is_raised(self):
-        """
-        Tests that pushing duplicate items into a collection raises
-        P2PUniqueConstraintViolated()
-        """
-        # First remove the item
-        self.p2p.remove_from_collection(
-            self.first_test_collection_code,
-            [self.first_test_story_slug]
-        )
-
-        # Successfully push the item in
-        try:
-            self.p2p.push_into_collection(
-                self.first_test_collection_code,
-                [self.first_test_story_slug]
-            )
-        except P2PUniqueConstraintViolated:
-            self.fail("P2PUniqueConstraintViolated shouldn't have been raised")
-
-        # Assert that the second time pushed in, the exception is raised
-        with self.assertRaises(P2PUniqueConstraintViolated):
-            self.p2p.push_into_collection(
-                self.first_test_collection_code,
-                [self.first_test_story_slug]
-            )
-
-    def test_push_item_into_two_collections(self):
-        data = {
-            'slug': 'la_na_test_two_collections',
-            'title': 'Testing updating collections in content items',
-            'body': 'lorem ipsum 6',
-            'content_item_type_code': 'story',
-        }
-
-        try:
-            self.p2p.create_content_item(data)
-        except P2PSlugTaken:
-            pass
-
-        self.p2p.push_into_collection(
-            self.first_test_collection_code, [data['slug']]
-        )
-
-        data2 = data.copy()
-        data2['body'] = 'Lorem ipsum foo bar'
-
-        self.p2p.push_into_collection(
-            self.second_test_collection_code,
-            [data['slug']]
-        )
-
-        self.p2p.update_content_item(data2)
-
-        first_collection_data = self.p2p.get_fancy_collection(
-            self.first_test_collection_code
-        )
-
-        content_item_included = False
-        for item in first_collection_data['items']:
-            if item['slug'] == data['slug']:
-                content_item_included = True
-
-        second_collection_data = self.p2p.get_fancy_collection(
-            self.second_test_collection_code
-        )
-
-        content_item_included_again = False
-        for item in second_collection_data['items']:
-            if item['slug'] == data['slug']:
-                content_item_included_again = True
-
-        self.assertTrue(content_item_included)
-        self.assertTrue(content_item_included_again)
-
-        self.assertTrue(self.p2p.delete_content_item(data['slug']))
-
-    def test_get_collection(self):
-        data = self.p2p.get_collection(self.first_test_collection_code)
-        for k in self.collection_keys:
-            self.assertIn(k, data.keys())
-
-    def test_get_collection_layout(self):
-        data = self.p2p.get_collection_layout(self.first_test_collection_code)
-        for k in self.content_layout_keys:
-            self.assertIn(k, data.keys())
-
-        for k in self.content_layout_item_keys:
-            self.assertIn(k, data['items'][0].keys())
-
     def test_multi_items(self):
         """
         Try sending in 3 ids to get_multi_content_items and assert that it
@@ -437,41 +386,6 @@ class TestP2P(unittest.TestCase):
         for i, ci in enumerate(data):
             self.assertEqual(data[i]["id"], ci_ids[i])
 
-    def test_many_multi_items(self):
-        self.p2p.remove_from_collection(
-            self.first_test_collection_code, self.test_story_slugs
-        )
-        self.p2p.push_into_collection(
-            self.first_test_collection_code, self.test_story_slugs
-        )
-
-        clayout = self.p2p.get_collection_layout(
-            self.first_test_collection_code
-        )
-        ci_ids = [i['contentitem_id'] for i in clayout['items']]
-
-        self.assertTrue(len(ci_ids) > 7)
-
-        data = self.p2p.get_multi_content_items(ci_ids)
-        self.assertTrue(len(ci_ids) == len(data))
-        for k in self.content_item_keys:
-            self.assertIn(k, data[0].keys())
-
-    def test_fancy_collection(self):
-        data = self.p2p.get_fancy_collection(
-            self.first_test_collection_code, with_collection=True)
-
-        for k in self.content_layout_keys:
-            self.assertIn(k, data.keys())
-
-        for k in self.collection_keys:
-            self.assertIn(k, data['collection'].keys())
-
-        self.assertTrue(len(data['items']) > 0)
-
-        for k in self.content_layout_item_keys:
-            self.assertIn(k, data['items'][0].keys())
-
     def test_fancy_content_item(self):
         self.p2p.push_into_content_item(
             self.first_test_story_slug,
@@ -483,6 +397,21 @@ class TestP2P(unittest.TestCase):
 
         for k in ('title', 'id', 'slug'):
             self.assertIn(k, data['related_items'][0]['content_item'])
+
+    def test_get_revision_list_and_number(self):
+        data = self.p2p.get_content_item_revision_list(
+            self.first_test_story_slug, 1
+        )
+        self.assertEqual(type(data["revisions"]), list)
+        number = data["revisions"][1]["number"]
+        data2 = self.p2p.get_content_item_revision_number(
+            self.first_test_story_slug, number
+        )
+        self.assertEqual(type(data2), dict)
+
+    def test_get_kickers(self):
+        data = self.p2p.get_kickers({"product_affiliate_code":"lanews"})
+        self.assertEqual(type(data["kickers"]), list)
 
     def test_get_section(self):
         data = self.p2p.get_section('/local')
@@ -746,3 +675,144 @@ class TestFilters(unittest.TestCase):
         self.assertEqual(
             filters.strip_tags('<p>foo</p> <p><b>head</b></p> <p>foo</p>'),
             'foo head foo')
+
+
+
+class CollectionTest(BaseP2PTest):
+    """
+    P2P collection tests
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.setUpTestStories()
+        cls.setUpTestCollections()
+
+    def test_get_collection(self):
+        data = self.p2p.get_collection(self.first_test_collection_code)
+        for k in self.collection_keys:
+            self.assertIn(k, data.keys())
+
+    def test_get_collection_layout(self):
+        data = self.p2p.get_collection_layout(self.first_test_collection_code)
+
+        for k in self.content_layout_keys:
+            self.assertIn(k, data.keys())
+
+        for k in self.content_layout_item_keys:
+            self.assertIn(k, data['items'][0].keys())
+
+    def test_fancy_collection(self):
+        data = self.p2p.get_fancy_collection(
+            self.first_test_collection_code,
+            with_collection=True
+        )
+
+        for k in self.content_layout_keys:
+            self.assertIn(k, data.keys())
+
+        for k in self.collection_keys:
+            self.assertIn(k, data['collection'].keys())
+
+        self.assertTrue(len(data['items']) > 0)
+
+        for k in self.content_layout_item_keys:
+            self.assertIn(k, data['items'][0].keys())
+
+    def test_that_unique_contraint_exception_is_raised(self):
+        """
+        Tests that pushing duplicate items into a collection raises
+        P2PUniqueConstraintViolated()
+        """
+        # First remove the item
+        self.p2p.remove_from_collection(
+            self.first_test_collection_code,
+            [self.first_test_story_slug]
+        )
+
+        # Successfully push the item in
+        try:
+            self.p2p.push_into_collection(
+                self.first_test_collection_code,
+                [self.first_test_story_slug]
+            )
+        except P2PUniqueConstraintViolated:
+            self.fail("P2PUniqueConstraintViolated shouldn't have been raised")
+
+        # Assert that the second time pushed in, the exception is raised
+        with self.assertRaises(P2PUniqueConstraintViolated):
+            self.p2p.push_into_collection(
+                self.first_test_collection_code,
+                [self.first_test_story_slug]
+            )
+
+    def test_push_item_into_two_collections(self):
+        data = {
+            'slug': 'la_na_test_two_collections',
+            'title': 'Testing updating collections in content items',
+            'body': 'lorem ipsum 6',
+            'content_item_type_code': 'story',
+        }
+
+        try:
+            self.p2p.create_content_item(data)
+        except P2PSlugTaken:
+            pass
+
+        self.p2p.push_into_collection(
+            self.first_test_collection_code, [data['slug']]
+        )
+
+        data2 = data.copy()
+        data2['body'] = 'Lorem ipsum foo bar'
+
+        self.p2p.push_into_collection(
+            self.second_test_collection_code,
+            [data['slug']]
+        )
+
+        self.p2p.update_content_item(data2)
+
+        first_collection_data = self.p2p.get_fancy_collection(
+            self.first_test_collection_code
+        )
+
+        content_item_included = False
+        for item in first_collection_data['items']:
+            if item['slug'] == data['slug']:
+                content_item_included = True
+
+        second_collection_data = self.p2p.get_fancy_collection(
+            self.second_test_collection_code
+        )
+
+        content_item_included_again = False
+        for item in second_collection_data['items']:
+            if item['slug'] == data['slug']:
+                content_item_included_again = True
+
+        self.assertTrue(content_item_included)
+        self.assertTrue(content_item_included_again)
+
+        self.assertTrue(self.p2p.delete_content_item(data['slug']))
+
+    def test_many_multi_items(self):
+        self.p2p.remove_from_collection(
+            self.first_test_collection_code,
+            self.test_story_slugs
+        )
+        self.p2p.push_into_collection(
+            self.first_test_collection_code,
+            self.test_story_slugs
+        )
+
+        clayout = self.p2p.get_collection_layout(
+            self.first_test_collection_code
+        )
+        ci_ids = [i['contentitem_id'] for i in clayout['items']]
+
+        self.assertTrue(len(ci_ids) > 7)
+
+        data = self.p2p.get_multi_content_items(ci_ids)
+        self.assertTrue(len(ci_ids) == len(data))
+        for k in self.content_item_keys:
+            self.assertIn(k, data[0].keys())
