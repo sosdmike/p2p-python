@@ -119,7 +119,7 @@ class StoryAndPhotoTest(BaseP2PTest):
         })
 
     def test_create_or_update_content_item_with_topics(self):
-        topics = ["PEBSL000163","PEPLT007433"]
+        topics = ["PEBSL000163", "PEPLT007433"]
 
         # Add topics to the story
         self.p2p.create_or_update_content_item({
@@ -264,6 +264,31 @@ class StoryAndPhotoTest(BaseP2PTest):
 
         res = result2
         self.assertEqual(res, {})
+
+    def test_content_item_exists(self):
+        slug = 'la_na_test_content_item_exists'
+        data = {
+            'slug': slug,
+            'title': 'Testing content item exists',
+            'body': 'Updated info',
+            'content_item_type_code': 'story',
+        }
+
+        # Create the content item, delete if exists and recreate.
+        try:
+            self.p2p.create_content_item(data)
+        except P2PSlugTaken:
+            self.p2p.delete_content_item(slug)
+            self.p2p.create_content_item(data)
+
+        # make sure it's there
+        self.assertTrue(self.p2p.content_item_exists(slug))
+
+        # delete it
+        self.p2p.delete_content_item(slug)
+
+        # make sure it does not exits.
+        self.assertFalse(self.p2p.content_item_exists(slug))
 
     def test_create_update_delete_htmlstory(self):
         data = {
