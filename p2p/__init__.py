@@ -1126,6 +1126,10 @@ class P2P(object):
         # Default max_date to today if non given
         if not max_date:
             max_date = date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
+        # Default min_date to the beginning of the epoch (1970)
+        if not min_date:
+            epoch = datetime.utcfromtimestamp(0)
+            min_date = epoch.strftime("%Y-%m-%dT%I:%M:%S%Z")
 
         params = {
             'page': page,
