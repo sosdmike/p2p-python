@@ -304,7 +304,7 @@ class P2P(object):
 
         return ret
 
-    def update_content_item(self, content_item, slug=None):
+    def update_content_item(self, payload, slug=None):
         """
         Update a content item.
 
@@ -316,8 +316,16 @@ class P2P(object):
         parameter in case the dictionary does not contain a 'slug' key or if
         the dictionary contains a changed slug.
         """
-        content = content_item.copy()
+        content = payload.copy()
 
+        # Check if content_item is nested or if this is a flat data structure
+        if 'content_item' in content:
+            content = content['content_item'].copy()
+            data = payload.copy()
+        else:
+            data = {'content_item': content }
+
+        # if a slug was given, remove it from the content item
         if slug is None:
             slug = content.pop('slug')
 
@@ -326,14 +334,16 @@ class P2P(object):
         except KeyError:
             pass
 
-        d = {'content_item': content}
+        # Now that we've manipulated the content item, update
+        # the payload as well
+        data['content_item'] = content
 
         url = "/content_items/%s.json"
         url = url % slug
         if not self.preserve_embedded_tags:
             url += "?preserve_embedded_tags=false"
 
-        resp = self.put_json(url, d)
+        resp = self.put_json(url, data)
 
         try:
             self.cache.remove_content_item(slug)
@@ -380,6 +390,16 @@ class P2P(object):
             'custom_param_data': {'metadata-robots': 'noindex, nofollow'},
         }
         return self.update_content_item(params, slug=slug)
+
+    def search_topics(self, name):
+        """
+        Searches P2P for topics starting with the given name
+        """
+        params = {
+            'name': name,
+            'name_contains': True,
+        }
+        return self.get("/topics.json", params)
 
     def add_topic(self, topic_id, slug=None):
         """
@@ -429,18 +449,26 @@ class P2P(object):
         except NotImplementedError:
             pass
 
-    def create_content_item(self, content_item):
+    def create_content_item(self, payload):
         """
         Create a new content item.
 
         Takes a single dictionary representing the new content item.
         Refer to the P2P API docs for the content item field names.
         """
-        content = content_item.copy()
-
         defaults = self.content_item_defaults.copy()
-        defaults.update(content)
-        data = {'content_item': defaults}
+        content = payload.copy()
+
+        # Check if content_item is nested or if this is a flat data structure
+        if 'content_item' in content:
+            item = content['content_item'].copy()
+            defaults.update(item)
+            content['content_item'] = defaults
+            data = content
+        else:
+            content = payload.copy()
+            defaults.update(content)
+            data = {'content_item': defaults}
 
         url = '/content_items.json'
         if not self.preserve_embedded_tags:
