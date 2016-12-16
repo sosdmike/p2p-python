@@ -1119,13 +1119,17 @@ class P2P(object):
 
     def get_source_product_affiliates(self, min_date='', max_date='', page=1):
         """
-        Retrieves a one or more of product affiliate codes
+        Retrieves one or more product affiliate sources that have
+        been modified within a designated date range.
+        Why a date range?  Who knows.
+        
         Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
         """
 
         # Default max_date to today if non given
         if not max_date:
             max_date = date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
+
         # Default min_date to the beginning of the epoch (1970)
         if not min_date:
             epoch = datetime.utcfromtimestamp(0)
@@ -1142,22 +1146,27 @@ class P2P(object):
     def get_product_affiliates(self, name='', code=''):
         """
         Retrieves one or more affiliate source codes.
+        The Content Services endpoint takes either 'code' or 'name'
+        as arguments but not both.
         """
 
         if name and name != 'all':
+            # If a name is specified, use it
             params = {
                 'name': str(name)
             }
         elif name and name == 'all':
+            # Special case.  If name is "all" get everything
             params = {
                 'name': ''
             }
         elif code:
+            # If there is a code specified, use it instead of name
             params = {
                 'code': str(code)
             }
-        # If the args are empty, get everything
         elif not name and not code:
+            # If the args are empty, get the defualt product affiliate info
             params = {
                 'code': self.product_affiliate_code
             }
