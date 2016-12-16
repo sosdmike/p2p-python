@@ -515,11 +515,23 @@ class P2P(object):
             'content_item_state_code': 'junk'
         })
 
+    def content_item_exists(self, slug):
+        """
+        Checks for the existance of a slug in content services
+        """
+        exists = True
+        try:
+            self.get("/content_items/%s/exists" % (slug))
+        except P2PNotFound:
+            exists = False
+        return exists
+
     def get_kickers(self, params):
         """
         Retrieves all kickers for an affiliate.
         """
         return self.get("/kickers.json", params)
+
 
     def search(self, params):
         """
@@ -1243,6 +1255,12 @@ curl)
             log.debug("[P2P][GET] %s" % url)
 
         resp_log = self._check_for_errors(resp, url)
+
+        # The API returns "Content item exists" when the /exists endpoint is called
+        # causing everything to go bonkers, Why do you do this!!!
+        if resp.content == "Content item exists":
+            return resp.content
+
         try:
             ret = utils.parse_response(resp.json())
             if 'ETag' in resp.headers:
