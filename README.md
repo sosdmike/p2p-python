@@ -293,11 +293,17 @@ Note: Ratios are used to responsively display blurbs as outfits on section pages
 
 The wrapper can query P2P for information on product affiliates and product affiliate sources.
 
-Search the product affiliate list and return matches for name or code. The CS endpoint will accept either name or code but not both.  If both name and code are given, code will take precedence.  If name and code are left blank, will return data for the current product affiliate.  If name is "all", this function will return data for all product affiliates in the database.
+Search the product affiliate list and return matches for name or code.
+
 `get_product_affiliates(self, name='', code='')`
 
-Get the product affiliate sources modified within a given date range.  If min_date and max_date are not specified, will get all product affiliate sources from the begining of the epoch (1970).  Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
+The CS endpoint will accept either name or code but not both.  If both name and code are given, code will take precedence.  If name and code are left blank, will return data for the current product affiliate.  If name is "all", this function will return data for all product affiliates in the database.
+
+Get the product affiliate sources modified within a given date range.  
+
 `get_source_product_affiliates(self, min_date='', max_date='', page=1)`
+
+If min_date and max_date are not specified, will get all product affiliate sources from the begining of the epoch (1970).  Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
 
 ## Exceptions
 
