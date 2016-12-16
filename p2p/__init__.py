@@ -9,6 +9,7 @@ from copy import deepcopy
 from cache import NoCache
 from decorators import retry
 from datetime import datetime
+from datetime import date
 from .adapters import TribAdapter
 from wsgiref.handlers import format_date_time
 from .errors import (
@@ -1155,6 +1156,62 @@ class P2P(object):
                 'path': path
             })
         return nav
+
+    def get_source_product_affiliates(self, min_date='', max_date='', page=1):
+        """
+        Retrieves one or more product affiliate sources that have
+        been modified within a designated date range.
+        Why a date range?  Who knows.
+        
+        Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
+        """
+
+        # Default max_date to today if non given
+        if not max_date:
+            max_date = date.today().strftime("%Y-%m-%dT%I:%M:%S%Z")
+
+        # Default min_date to the beginning of the epoch (1970)
+        if not min_date:
+            epoch = datetime.utcfromtimestamp(0)
+            min_date = epoch.strftime("%Y-%m-%dT%I:%M:%S%Z")
+
+        params = {
+            'page': page,
+            'minimum_date': min_date,
+            'maximum_date': max_date
+        }
+
+        return self.get("/source_product_affiliates/multi.json", params)
+
+    def get_product_affiliates(self, name='', code=''):
+        """
+        Retrieves one or more affiliate source codes.
+        The Content Services endpoint takes either 'code' or 'name'
+        as arguments but not both.
+        """
+
+        if name and name != 'all':
+            # If a name is specified, use it
+            params = {
+                'name': str(name)
+            }
+        elif name and name == 'all':
+            # Special case.  If name is "all" get everything
+            params = {
+                'name': ''
+            }
+        elif code:
+            # If there is a code specified, use it instead of name
+            params = {
+                'code': str(code)
+            }
+        elif not name and not code:
+            # If the args are empty, get the defualt product affiliate info
+            params = {
+                'code': self.product_affiliate_code
+            }
+
+        return self.get("/product_affiliates/multi.json", params)
 
     # Utilities
     def http_headers(self, content_type=None, if_modified_since=None):

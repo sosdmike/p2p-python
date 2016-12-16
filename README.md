@@ -318,6 +318,22 @@ HTML stories use many of the story parameters.
 
 Note: Ratios are used to responsively display blurbs as outfits on section pages or as embeds on article pages. Ratios are calculated by dividing the height by the width of the container and multiplying by 100. For example, to get 4:3 as a ratio, divide 3 by 4 and then multiply by 100 to get 75. (3 ÷ 4) * 100 = 75
 
+## Product Affiliates and sources
+
+The wrapper can query P2P for information on product affiliates and product affiliate sources.
+
+Search the product affiliate list and return matches for name or code.
+
+`get_product_affiliates(self, name='', code='')`
+
+The CS endpoint will accept either name or code but not both.  If both name and code are given, code will take precedence.  If name and code are left blank, will return data for the current product affiliate.  If name is "all", this function will return data for all product affiliates in the database.
+
+Get the product affiliate sources modified within a given date range.  
+
+`get_source_product_affiliates(self, min_date='', max_date='', page=1)`
+
+If min_date and max_date are not specified, will get all product affiliate sources from the begining of the epoch (1970).  Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
+
 ## Exceptions
 
 The wrapper scans API responses for known errors to raise relevant Python exceptions.
