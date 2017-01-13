@@ -149,6 +149,18 @@ def get_featured_related_item(content_dict):
         if item['content_item_type_code'] in feature_types:
             return item
 
+def get_custom_param_value(content_dict, param_key, default_value='null'):
+    """
+    Looks through a content_dict's custom params and returns
+    the value of the given key or default_value if not found
+    """
+    value = None
+    for entry in content_dict['programmed_custom_params']:
+        if entry['key'] == param_key:
+            value = entry.get('value', entry.get('clob_value'))
+    if value:
+        return value
+    return default_value
 
 def find_content_item(content_dict):
     if 'content_item' in content_dict:

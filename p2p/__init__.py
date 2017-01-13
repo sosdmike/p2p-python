@@ -11,6 +11,7 @@ from decorators import retry
 from datetime import datetime
 from datetime import date
 from .adapters import TribAdapter
+from .filters import get_custom_param_value
 from wsgiref.handlers import format_date_time
 from .errors import (
     P2PException,
@@ -475,7 +476,163 @@ class P2P(object):
             url += "?preserve_embedded_tags=false"
 
         resp = self.post_json(url, data)
+
         return resp
+
+    def clone_content_item(self, slug, clone_slug):
+        """
+        Clone a P2P content item into the current market
+
+        Takes a single dict representing the content item to be cloned.
+        Refer to the P2P API docs for the content item field name
+        """
+        # Extra include vars
+        query = {
+            "include": [
+                "contributors",
+                "related_items",
+                "embedded_items",
+                "programmed_custom_params",
+                "web_url",
+                "geocodes"
+            ],
+        }
+
+        # Get the full fancy content item
+        content_item = self.get_content_item(slug, query)
+
+        # Datetime string format
+        fmt = '%Y-%m-%d %I:%M %p %Z'
+
+        # Format display and publish time
+        display_time_string = ''
+        publish_time_string = ''
+        if content_item.get('display_time'):
+            display_time_string = content_item.get('display_time').strftime(fmt)
+        if content_item.get('publish_time'):
+            publish_time_string = content_item.get('publish_time').strftime(fmt)
+
+        # Format the corrections timestamp
+        corrections_date = get_custom_param_value(content_item, 'corrections_date', default_value='')
+        if not isinstance(corrections_date, basestring):
+            corrections_date = corrections_date.strftime(fmt)
+
+        # The story payload
+        payload = {
+            'slug': clone_slug,
+            'title': content_item.get('title'),
+            'titleline': content_item.get('titleline'),
+            'kicker_id': content_item.get('kicker_id'),
+            'seotitle': content_item.get('seotitle'),
+            'byline': '',
+            'body': content_item.get('body'),
+            'dateline': content_item.get('dateline'),
+            'seodescription': content_item.get('seodescription'),
+            'seo_keyphrase': content_item.get('seo_keyphrase'),
+            'content_item_state_code': content_item.get('content_item_state_code'),
+            'content_item_type_code': content_item.get('content_item_type_code'),
+            'display_time': display_time_string,
+            'publish_time': publish_time_string,
+            'product_affiliate_code': self.product_affiliate_code,
+            'source_code':  content_item.get('source_code'),
+            'canonical_url': content_item.get("web_url"),
+        }
+
+        # Update the custom param data
+        payload['custom_param_data'] = {
+            'enable-content-commenting': get_custom_param_value(content_item, 'enable-content-commenting'),
+            'leadart-size': get_custom_param_value(content_item, 'lead_image_size'),
+            'story-summary': get_custom_param_value(content_item, 'seodescription', default_value=''),
+            'article-correction-text': get_custom_param_value(content_item, 'corrections_text', default_value=''),
+            'article-correction-timestamp': corrections_date,
+            'snap-user-ids': get_custom_param_value(content_item, 'snap_user_ids', default_value='')
+        }
+
+        # HTML Story specific custom params
+        if payload['content_item_type_code'] == 'htmlstory':
+            html_params = {
+                'htmlstory-rhs-column-ad-enable': get_custom_param_value(content_item, 'htmlstory-rhs-column-ad-enable'),
+                'htmlstory-headline-enable': get_custom_param_value(content_item, 'htmlstory-headline-enable'),
+                'htmlstory-byline-enable': get_custom_param_value(content_item, 'htmlstory-byline-enable'),
+                'disable-publication-date': get_custom_param_value(content_item, 'disable-publication-date')
+            }
+            payload['custom_param_data'].update(html_params)
+
+        # Get alt_thumbnail_url and old_slug for thumbnail logic below
+        alt_thumbnail_url = content_item.get('alt_thumbnail_url')
+
+        # Only try to update if alt_thumbnail_url is a thing
+        if content_item.get('alt_thumbnail_url', None):
+            # data must be nested in this odd photo_upload key
+            # if source code is available then it will be placed on the payload, else it will
+            # default to the current users product affiliate source code
+            payload['photo_upload'] = {
+                'alt_thumbnail': {
+                    'url': content_item.get('alt_thumbnail_url'),
+                    "source_code": content_item.get('alt_thumb_source_id', self.source_code)
+                }
+            }
+
+        # Compile the embedded items
+        for item in content_item.get('embedded_items'):
+            embed_item = {
+                'embeddedcontentitem_id': item['embeddedcontentitem_id'],
+                'headline': item['headline'],
+                'subheadline': item['subheadline'],
+                'brief': item['brief'],
+            }
+            if not payload.get('embedded_items', None): payload['embedded_items'] = []
+            payload['embedded_items'].append(embed_item)
+
+        # Compile the related items
+        for item in content_item.get('related_items'):
+            related_item = {
+                'relatedcontentitem_id': item['relatedcontentitem_id'],
+                'headline': item['headline'],
+                'subheadline': item['subheadline'],
+                'brief': item['brief'],
+            }
+            if not payload.get('related_items', None): payload['related_items'] = []
+            payload['related_items'].append(related_item)
+
+        # Clone the thing
+        clone = self.create_content_item(payload)
+        clone = clone.get('story', clone.get('html_story'))
+
+        # if we have successfully cloned the content item, continue on
+        if not clone.get('id'):
+            raise P2PNotFound
+        else:
+            clone_contributors = []
+
+            # Split apart the byline string and iterate through it
+            if content_item.get('byline', None):
+                bylines = content_item.get('byline').split(',')
+                for byline in bylines:
+
+                    # Preemptively create a freeform contributor
+                    byline = byline.strip()
+                    byline_item = {"free_form_name": byline}
+
+                    # Search the contributors array for a matching adv byline
+                    for contributor in content_item.get('contributors'):
+                        # Wade through the nestedness
+                        contributor = contributor['contributor']
+                        if byline.lower() in contributor['title'].lower():
+                            # If a match was found, update the entry with the staff slug
+                            byline_item = {'slug': contributor['slug']}
+
+                    # Add the final result to the clone_contributors array
+                    clone_contributors.append(byline_item);
+
+            # If we have some contributors, let's add them
+            if len(clone_contributors) > 0:
+                try:
+                    self.append_contributors_to_content_item(clone['id'], clone_contributors)
+                except P2PException:
+                    raise
+
+            return clone['id']
 
     def delete_content_item(self, slug):
         """
@@ -599,8 +756,7 @@ class P2P(object):
                 'collection': {
                     'code': data['code'],
                     'name': data['name'],
-                    'collection_type_code': data.get('collection_type_code',
-                                                     'misc'),
+                    'collectiontype_id': data.get('collection_type_id', 1),
                     'last_modified_time': data.get('last_modified_time',
                                                    datetime.utcnow()),
                     'sequence': 999
@@ -1162,7 +1318,7 @@ class P2P(object):
         Retrieves one or more product affiliate sources that have
         been modified within a designated date range.
         Why a date range?  Who knows.
-        
+
         Dates must be of the format: YYYY-MM-DDTHH:MM:SSZ
         """
 

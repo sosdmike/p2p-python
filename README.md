@@ -78,6 +78,10 @@ The API only allows 25 items to be requested at once, so this function breaks th
 
 Takes an optional `query` parameter which is a dictionary containing parameters to pass along in the API call. See [query parameters](#query-parameters).
 
+`clone_content_item(slug_or_id, clone_slug)`
+
+Clone a story from another market into the current user's market with the provided `clone_slug`.
+
 `delete_content_item(slug)`
 
 Delete the content item out of p2p. Provide the slug of the content item you'd like to delete.
