@@ -529,7 +529,7 @@ class P2P(object):
             'dateline': content_item.get('dateline'),
             'seodescription': content_item.get('seodescription'),
             'seo_keyphrase': content_item.get('seo_keyphrase'),
-            'content_item_state_code': content_item.get('content_item_state_code'),
+            'content_item_state_code': 'working',
             'content_item_type_code': content_item.get('content_item_type_code'),
             'display_time': display_time_string,
             'publish_time': publish_time_string,
