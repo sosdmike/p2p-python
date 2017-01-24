@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import math
 import utils
@@ -22,6 +23,7 @@ from .errors import (
     P2PSearchError,
     P2PTimeoutError,
     P2PRetryableError,
+    P2PFileURLNotFound,
     P2PInvalidFileType,
     P2PEncodingMismatch,
     P2PUnknownAttribute,
@@ -1427,6 +1429,8 @@ curl)
                     raise P2PPhotoUploadError(resp.url, request_log, curl)
                 elif u"This file type is not supported" in resp.content:
                     raise P2PInvalidFileType(resp.url, request_log, curl)
+                elif re.search(r"The URL (.*) does not exist", resp.content):
+                    raise P2PFileURLNotFound(resp.url, request_log)
 
                 data = resp.json()
 

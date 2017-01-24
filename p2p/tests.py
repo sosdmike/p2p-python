@@ -5,6 +5,7 @@ from p2p import (
     P2PNotFound,
     P2PSlugTaken,
     filters,
+    P2PFileURLNotFound,
     P2PUniqueConstraintViolated
 )
 pp = pprint.PrettyPrinter(indent=4)
@@ -591,6 +592,31 @@ class StoryAndPhotoTest(BaseP2PTest):
                 self.assertTrue(self.p2p.delete_content_item(
                     article_data['slug']))
 
+    def test_file_url_not_found_error(self):
+        """
+        Tests that sending a bad photo url to p2p will raise
+        P2PFileURLNotFound.
+        """
+        # Try sending a bad URL
+        bad_photo_url = "http://www.latimes.com/bad_photo_url.png"
+        payload = {
+            'slug': self.first_test_story_slug,
+            'content_item_type_code': 'htmlstory',
+            'photo_upload': {
+                'alt_thumbnail': {
+                    'url': bad_photo_url
+                }
+            },
+        }
+        with self.assertRaises(P2PFileURLNotFound):
+            self.p2p.create_or_update_content_item(payload)
+        
+        # Now try sending a good URL
+        good_photo_url = "https://placeholdit.imgix.net/~text?txtsize=33&\
+txt=P2P%20UNIT%20TEST&w=600&h=400"
+        payload["photo_upload"]["alt_thumbnail"]["url"] = good_photo_url
+
+        self.p2p.create_or_update_content_item(payload)
 
 class TestFilters(unittest.TestCase):
 
