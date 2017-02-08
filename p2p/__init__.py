@@ -481,12 +481,15 @@ class P2P(object):
 
         return resp
 
-    def clone_content_item(self, slug, clone_slug):
+    def clone_content_item(self, slug, clone_slug, keep_embeds=False, keep_relateds=False):
         """
         Clone a P2P content item into the current market
 
         Takes a single dict representing the content item to be cloned.
         Refer to the P2P API docs for the content item field name
+
+        Flags keep_embeds and keep_relateds determines whether the embedded
+        and/or related items will persist in the cloned object
         """
         # Extra include vars
         query = {
@@ -575,27 +578,29 @@ class P2P(object):
                 }
             }
 
-        # Compile the embedded items
-        for item in content_item.get('embedded_items'):
-            embed_item = {
-                'embeddedcontentitem_id': item['embeddedcontentitem_id'],
-                'headline': item['headline'],
-                'subheadline': item['subheadline'],
-                'brief': item['brief'],
-            }
-            if not payload.get('embedded_items', None): payload['embedded_items'] = []
-            payload['embedded_items'].append(embed_item)
+        if keep_embeds:
+            # Compile the embedded items
+            payload['embedded_items'] = []
+            for item in content_item.get('embedded_items'):
+                embed_item = {
+                    'embeddedcontentitem_id': item['embeddedcontentitem_id'],
+                    'headline': item['headline'],
+                    'subheadline': item['subheadline'],
+                    'brief': item['brief'],
+                }
+                payload['embedded_items'].append(embed_item)
 
-        # Compile the related items
-        for item in content_item.get('related_items'):
-            related_item = {
-                'relatedcontentitem_id': item['relatedcontentitem_id'],
-                'headline': item['headline'],
-                'subheadline': item['subheadline'],
-                'brief': item['brief'],
-            }
-            if not payload.get('related_items', None): payload['related_items'] = []
-            payload['related_items'].append(related_item)
+        if keep_relateds:
+            # Compile the related items
+            payload['related_items'] = []
+            for item in content_item.get('related_items'):
+                related_item = {
+                    'relatedcontentitem_id': item['relatedcontentitem_id'],
+                    'headline': item['headline'],
+                    'subheadline': item['subheadline'],
+                    'brief': item['brief'],
+                }
+                payload['related_items'].append(related_item)
 
         # Clone the thing
         clone = self.create_content_item(payload)
