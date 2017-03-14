@@ -809,6 +809,11 @@ class P2P(object):
         """
         Push a list of content item slugs onto the top of a collection
         """
+        # Enforce that a list of slugs is passed in (not a string)
+        if not isinstance(content_item_slugs, list):
+            log.warning("[P2P][push_into_collection] content_item_slugs is not a list: %s" % content_item_slugs)
+            content_item_slugs = [content_item_slugs]
+
         ret = self.put_json(
             '/collections/prepend.json?id=%s' % code,
             {'items': content_item_slugs})
@@ -846,6 +851,11 @@ class P2P(object):
         """
         Push a list of content item slugs onto the top of a collection
         """
+        # Enforce that a list of slugs is passed in (not a string)
+        if not isinstance(content_item_slugs, list):
+            log.warning("[P2P][remove_from_collection] content_item_slugs is not a list: %s" % content_item_slugs)
+            content_item_slugs = [content_item_slugs]
+
         ret = self.put_json(
             '/collections/remove_items.json?id=%s' % code,
             {'items': content_item_slugs})

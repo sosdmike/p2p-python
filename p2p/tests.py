@@ -610,7 +610,7 @@ class StoryAndPhotoTest(BaseP2PTest):
         }
         with self.assertRaises(P2PFileURLNotFound):
             self.p2p.create_or_update_content_item(payload)
-        
+
         # Now try sending a good URL
         good_photo_url = "https://placeholdit.imgix.net/~text?txtsize=33&\
 txt=P2P%20UNIT%20TEST&w=600&h=400"
@@ -892,3 +892,28 @@ class CollectionTest(BaseP2PTest):
         self.assertTrue(len(ci_ids) == len(data))
         for k in self.content_item_keys:
             self.assertIn(k, data[0].keys())
+
+    def test_that_converting_to_array_works(self):
+        """
+        Test that passing in a string in place of an array results in a successful call
+        """
+        # First just remove it from the test collection to make sure we can push
+        try:
+            self.p2p.remove_from_collection(
+                self.first_test_collection_code,
+                self.first_test_story_slug
+            )
+        except:
+            pass
+
+        # Then push with a slug string
+        self.p2p.push_into_collection(
+            self.first_test_collection_code,
+            self.first_test_story_slug
+        )
+        
+        # Then remove with a slug string
+        self.p2p.remove_from_collection(
+            self.first_test_collection_code,
+            self.first_test_story_slug
+        )
