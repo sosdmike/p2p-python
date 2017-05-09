@@ -5,6 +5,7 @@ import math
 import utils
 import logging
 import requests
+import warnings
 from time import mktime
 from copy import deepcopy
 from cache import NoCache
@@ -602,6 +603,12 @@ class P2P(object):
                 }
                 payload['related_items'].append(related_item)
 
+        contributors = self._get_cloned_contributors(content_item)
+
+        if contributors:
+            del payload['byline']
+            payload['contributors'] = contributors
+
         # Clone the thing
         clone = self.create_content_item(payload)
         clone = clone.get('story', clone.get('html_story'))
@@ -609,37 +616,39 @@ class P2P(object):
         # if we have successfully cloned the content item, continue on
         if not clone.get('id'):
             raise P2PNotFound
-        else:
-            clone_contributors = []
 
-            # Split apart the byline string and iterate through it
-            if content_item.get('byline', None):
-                bylines = content_item.get('byline').split(',')
-                for byline in bylines:
+        return clone['id']
 
-                    # Preemptively create a freeform contributor
-                    byline = byline.strip()
-                    byline_item = {"free_form_name": byline}
+    def _get_cloned_contributors(self, content_item):
+        """
+        Take a content item and remove the contributers
 
-                    # Search the contributors array for a matching adv byline
-                    for contributor in content_item.get('contributors'):
-                        # Wade through the nestedness
-                        contributor = contributor['contributor']
-                        if byline.lower() in contributor['title'].lower():
-                            # If a match was found, update the entry with the staff slug
-                            byline_item = {'slug': contributor['slug']}
+        This function is supposed to look at the byline in a content item and
+        caclulate the contributers or free_form_contributers from them
+        """
+        clone_contributors = []
 
-                    # Add the final result to the clone_contributors array
-                    clone_contributors.append(byline_item);
+        # Split apart the byline string and iterate through it
+        if content_item.get('byline', None):
+            bylines = content_item.get('byline').split(',')
+            for byline in bylines:
 
-            # If we have some contributors, let's add them
-            if len(clone_contributors) > 0:
-                try:
-                    self.append_contributors_to_content_item(clone['id'], clone_contributors)
-                except P2PException:
-                    raise
+                # Preemptively create a freeform contributor
+                byline = byline.strip()
+                byline_item = {"free_form_name": byline}
 
-            return clone['id']
+                # Search the contributors array for a matching adv byline
+                for contributor in content_item.get('contributors'):
+                    # Wade through the nestedness
+                    contributor = contributor['contributor']
+                    if byline.lower() in contributor['title'].lower():
+                        # If a match was found, update the entry with the staff slug
+                        byline_item = {'slug': contributor['slug']}
+
+                # Add the final result to the clone_contributors array
+                clone_contributors.append(byline_item);
+        return clone_contributors
+
 
     def delete_content_item(self, slug):
         """
@@ -904,6 +913,7 @@ class P2P(object):
           ]
         }
         """
+        warnings.warn('append_contributors_to_content_item will be removed in version 2.1', DeprecationWarning)
         ret = self.put_json(
             '/content_items/%s/append_contributors.json' % slug,
             {'items': contributors})
