@@ -515,8 +515,6 @@ class P2P(object):
         publish_time_string = ''
         if content_item.get('display_time'):
             display_time_string = content_item.get('display_time').strftime(fmt)
-        if content_item.get('publish_time'):
-            publish_time_string = content_item.get('publish_time').strftime(fmt)
 
         # Format the corrections timestamp
         corrections_date = get_custom_param_value(content_item, 'corrections_date', default_value='')
@@ -538,7 +536,6 @@ class P2P(object):
             'content_item_state_code': 'working',
             'content_item_type_code': content_item.get('content_item_type_code'),
             'display_time': display_time_string,
-            'publish_time': publish_time_string,
             'product_affiliate_code': self.product_affiliate_code,
             'source_code':  content_item.get('source_code'),
             'canonical_url': content_item.get("web_url"),
