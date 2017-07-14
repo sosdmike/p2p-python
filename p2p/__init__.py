@@ -1416,7 +1416,6 @@ class P2P(object):
         string of the request and a dictionary of response data.
         """
         curl = utils.request_to_curl(resp.request)
-        print curl
         request_log = {
             'REQ_URL': req_url,
             'REQ_HEADERS': self.http_headers(),
