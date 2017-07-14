@@ -803,7 +803,11 @@ class P2P(object):
         """
         ret = self.put_json(
             '/collections/override_layout.json?id=%s' % code,
-            {'items': content_item_slugs})
+            {
+                'items': content_item_slugs,
+                'replace_layout': 'true'
+            }
+        )
         try:
             self.cache.remove_collection(code)
             self.cache.remove_collection_layout(code)
