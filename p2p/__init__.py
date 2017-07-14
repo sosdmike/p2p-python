@@ -803,7 +803,11 @@ class P2P(object):
         """
         ret = self.put_json(
             '/collections/override_layout.json?id=%s' % code,
-            {'items': content_item_slugs})
+            {
+                'items': content_item_slugs,
+                'replace_layout': 'true'
+            }
+        )
         try:
             self.cache.remove_collection(code)
             self.cache.remove_collection_layout(code)
@@ -1412,6 +1416,7 @@ class P2P(object):
         string of the request and a dictionary of response data.
         """
         curl = utils.request_to_curl(resp.request)
+        print curl
         request_log = {
             'REQ_URL': req_url,
             'REQ_HEADERS': self.http_headers(),
