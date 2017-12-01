@@ -1508,6 +1508,8 @@ curl)
             ret = utils.parse_response(resp.json())
             if 'ETag' in resp.headers:
                 ret['etag'] = resp.headers['ETag']
+            if 'X-Total-Hits' in resp.headers:
+                ret['total-hits'] = resp.headers['X-Total-Hits']
             return ret
         except ValueError:
             log.error('[P2P][GET] JSON VALUE ERROR ON SUCCESSFUL RESPONSE %s' % resp_log)
