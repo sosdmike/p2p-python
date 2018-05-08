@@ -1305,7 +1305,6 @@ class P2P(object):
         for item in top_level['items']:
             fancy_item = self.get_fancy_content_item(item['slug'])
             if 'url' not in fancy_item:
-                print fancy_item
                 raise
             sub_nav = list()
             for sub_item in fancy_item['related_items']:
@@ -1314,7 +1313,6 @@ class P2P(object):
                 elif 'web_url' in sub_item['content_item']:
                     url = sub_item['content_item']['web_url']
                 else:
-                    print sub_item['content_item']
                     raise
 
                 if not url.startswith('http'):
@@ -1583,7 +1581,6 @@ curl)
             return {}
         else:
             try:
-                print resp.__dict__
                 return utils.parse_response(resp.json())
             except Exception:
                 log.error('[P2P][POST] EXCEPTION IN JSON PARSE: %s' % resp_log)
