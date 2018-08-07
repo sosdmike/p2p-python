@@ -1,21 +1,25 @@
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+from six import string_types
 import os
 import re
 import json
 import math
-import utils
+from . import utils
 import logging
 import requests
 import warnings
 from time import mktime
 from copy import deepcopy
-from cache import NoCache
-from decorators import retry
+from .cache import NoCache
+from .decorators import retry
 from datetime import datetime
 from datetime import date
 from .adapters import TribAdapter
 from .filters import get_custom_param_value
 from wsgiref.handlers import format_date_time
-from .errors import (
+from .errors import (  # noqa
     P2PException,
     P2PFileError,
     P2PSlugTaken,
@@ -327,7 +331,7 @@ class P2P(object):
             content = content['content_item'].copy()
             data = payload.copy()
         else:
-            data = {'content_item': content }
+            data = {'content_item': content}
 
         # if a slug was given, remove it from the content item
         if slug is None:
@@ -512,13 +516,12 @@ class P2P(object):
 
         # Format display and publish time
         display_time_string = ''
-        publish_time_string = ''
         if content_item.get('display_time'):
             display_time_string = content_item.get('display_time').strftime(fmt)
 
         # Format the corrections timestamp
         corrections_date = get_custom_param_value(content_item, 'corrections_date', default_value='')
-        if not isinstance(corrections_date, basestring):
+        if not isinstance(corrections_date, string_types):
             corrections_date = corrections_date.strftime(fmt)
 
         # The story payload
@@ -537,7 +540,7 @@ class P2P(object):
             'content_item_type_code': content_item.get('content_item_type_code'),
             'display_time': display_time_string,
             'product_affiliate_code': self.product_affiliate_code,
-            'source_code':  content_item.get('source_code'),
+            'source_code': content_item.get('source_code'),
             'canonical_url': content_item.get("web_url"),
         }
 
@@ -562,7 +565,7 @@ class P2P(object):
             payload['custom_param_data'].update(html_params)
 
         # Get alt_thumbnail_url and old_slug for thumbnail logic below
-        alt_thumbnail_url = content_item.get('alt_thumbnail_url')
+        # alt_thumbnail_url = content_item.get('alt_thumbnail_url')
 
         # Only try to update if alt_thumbnail_url is a thing
         if content_item.get('alt_thumbnail_url', None):
@@ -643,9 +646,8 @@ class P2P(object):
                         byline_item = {'slug': contributor['slug']}
 
                 # Add the final result to the clone_contributors array
-                clone_contributors.append(byline_item);
+                clone_contributors.append(byline_item)
         return clone_contributors
-
 
     def delete_content_item(self, slug):
         """
@@ -657,7 +659,7 @@ class P2P(object):
             self.cache.remove_content_item(slug)
         except NotImplementedError:
             pass
-        return True if "destroyed successfully" in result else False
+        return True if b"destroyed successfully" in result else False
 
     def create_or_update_content_item(self, content_item):
         """
@@ -702,7 +704,6 @@ class P2P(object):
         Retrieves all kickers for an affiliate.
         """
         return self.get("/kickers.json", params)
-
 
     def search(self, params):
         """
@@ -971,8 +972,8 @@ class P2P(object):
 
         # We have our content item, now loop through the related
         # items, build a list of content item ids, and retrieve them all
-        ids = [item_stub['relatedcontentitem_id']
-            for item_stub in content_item['related_items']
+        ids = [
+            item_stub['relatedcontentitem_id'] for item_stub in content_item['related_items']
         ]
 
         related_items = self.get_multi_content_items(
@@ -1430,33 +1431,34 @@ class P2P(object):
             log.debug("[P2P][RESPONSE] %s" % request_log)
 
         if resp.status_code >= 500:
+            response_text = resp.text
             try:
-                if u'ORA-00001: unique constraint' in resp.content:
-                    raise P2PUniqueConstraintViolated(resp.url, request_log, \
-curl)
-                elif u'incompatible encoding regexp match' in resp.content:
+                if u'ORA-00001: unique constraint' in response_text:
+                    raise P2PUniqueConstraintViolated(
+                        resp.url, request_log, curl)
+                elif u'incompatible encoding regexp match' in response_text:
                     raise P2PEncodingMismatch(resp.url, request_log, curl)
-                elif u'unknown attribute' in resp.content:
+                elif u'unknown attribute' in response_text:
                     raise P2PUnknownAttribute(resp.url, request_log, curl)
-                elif u"Invalid access definition" in resp.content:
-                    raise P2PInvalidAccessDefinition(resp.url, request_log, \
-curl)
-                elif u"solr.tila.trb" in resp.content:
+                elif u"Invalid access definition" in response_text:
+                    raise P2PInvalidAccessDefinition(
+                        resp.url, request_log, curl)
+                elif u"solr.tila.trb" in response_text:
                     raise P2PSearchError(resp.url, request_log, curl)
-                elif u"Request Timeout" in resp.content:
+                elif u"Request Timeout" in response_text:
                     raise P2PTimeoutError(resp.url, request_log, curl)
-                elif u'Duplicate entry' in resp.content:
-                    raise P2PUniqueConstraintViolated(resp.url, request_log, \
-curl)
+                elif u'Duplicate entry' in response_text:
+                    raise P2PUniqueConstraintViolated(
+                        resp.url, request_log, curl)
                 elif (u'Failed to upload image to the photo service'
-                        in resp.content):
+                        in response_text):
                     raise P2PPhotoUploadError(resp.url, request_log, curl)
-                elif u"This file type is not supported" in resp.content:
+                elif u"This file type is not supported" in response_text:
                     raise P2PInvalidFileType(resp.url, request_log, curl)
-                elif re.search(r"The URL (.*) does not exist", resp.content):
+                elif re.search(r"The URL (.*) does not exist", response_text):
                     raise P2PFileURLNotFound(resp.url, request_log)
 
-                data = resp.json()
+                data = resp.json()  # noqa
 
             except ValueError:
                 pass
@@ -1464,9 +1466,9 @@ curl)
         elif resp.status_code == 404:
             raise P2PNotFound(resp.url, request_log, curl)
         elif resp.status_code >= 400:
-            if u'{"slug":["has already been taken"]}' in resp.content:
+            if b'{"slug":["has already been taken"]}' in resp.content:
                 raise P2PSlugTaken(resp.url, request_log, curl)
-            elif u'{"code":["has already been taken"]}' in resp.content:
+            elif b'{"code":["has already been taken"]}' in resp.content:
                 raise P2PSlugTaken(resp.url, request_log, curl)
             elif resp.status_code == 403:
                 raise P2PForbidden(resp.url, request_log, curl)
@@ -1499,7 +1501,7 @@ curl)
 
         # The API returns "Content item exists" when the /exists endpoint is called
         # causing everything to go bonkers, Why do you do this!!!
-        if resp.content == "Content item exists":
+        if resp.content == b"Content item exists":
             return resp.content
 
         try:
@@ -1577,7 +1579,7 @@ curl)
 
         resp_log = self._check_for_errors(resp, url)
 
-        if resp.content == "" and resp.status_code < 400:
+        if resp.text == "" and resp.status_code < 400:
             return {}
         else:
             try:
