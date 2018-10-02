@@ -32,11 +32,14 @@ def dict_to_qs(dictionary):
     that the p2p API will handle.
     """
     qs = list()
-
+    if six.PY2:
+        string_types = (basestring, str, unicode)
+    elif six.PY3:
+        string_types = (str, )
     for k, v in list(dictionary.items()):
         if isinstance(v, dict):
             for k2, v2 in list(v.items()):
-                if type(v2) in (str, str, int, float, bool):
+                if type(v2) in string_types + (int, float, bool):
                     qs.append("%s[%s]=%s" % (k, k2, v2))
                 elif type(v2) in (list, tuple):
                     for v3 in v2:
@@ -46,7 +49,7 @@ def dict_to_qs(dictionary):
                         qs.append("%s[%s][%s]=%s" % (k, k2, k3, v3))
                 else:
                     raise TypeError
-        elif type(v) in (str, str, int, float, bool):
+        elif type(v) in string_types + (int, float, bool):
             qs.append("%s=%s" % (k, v))
         elif type(v) in (list, tuple):
             for v2 in v:
