@@ -1414,6 +1414,7 @@ class P2P(object):
         string of the request and a dictionary of response data.
         """
         curl = utils.request_to_curl(resp.request)
+
         request_log = {
             'REQ_URL': req_url,
             'REQ_HEADERS': self.http_headers(),
@@ -1428,6 +1429,13 @@ class P2P(object):
 
         if self.debug:
             log.debug("[P2P][RESPONSE] %s" % request_log)
+
+        if resp.request.url != resp.url:
+            # we got redirected, this probably should not happen on an API request.
+            # throwing a `P2PForbidden` exception would probably be better but
+            # if we throw that a retry would happen and we already know
+            # that we got redirected so something is bad here.
+            raise P2PException(resp.url, request_log, curl)
 
         if resp.status_code >= 500:
             try:
@@ -1485,7 +1493,8 @@ curl)
         resp = self.s.get(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
-            verify=True
+            verify=True,
+            allow_redirects=False,
         )
 
         # Log the request curl if debug is on
@@ -1518,7 +1527,8 @@ curl)
         resp = self.s.delete(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(),
-            verify=True)
+            verify=True,
+            allow_redirects=False,)
 
         # Log the request curl if debug is on
         if self.debug:
@@ -1537,7 +1547,8 @@ curl)
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=True
+            verify=True,
+            allow_redirects=False,
         )
 
         # Log the request curl if debug is on
@@ -1565,7 +1576,8 @@ curl)
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=True
+            verify=True,
+            allow_redirects=False,
         )
 
         # Log the request curl if debug is on
