@@ -30,7 +30,9 @@ from .errors import (
     P2PUnknownAttribute,
     P2PPhotoUploadError,
     P2PInvalidAccessDefinition,
-    P2PUniqueConstraintViolated
+    P2PUniqueConstraintViolated,
+    P2PRedirectedToLogin,
+    P2PThrottled
 )
 log = logging.getLogger('p2p')
 
@@ -1429,13 +1431,15 @@ class P2P(object):
 
         if self.debug:
             log.debug("[P2P][RESPONSE] %s" % request_log)
-
-        if resp.request.url != resp.url:
-            # we got redirected, this probably should not happen on an API request.
-            # throwing a `P2PForbidden` exception would probably be better but
-            # if we throw that a retry would happen and we already know
-            # that we got redirected so something is bad here.
-            raise P2PException(resp.url, request_log, curl)
+        if resp.history:
+            # ok, we got redirected somewhere, lets make sure that we aren't being.
+            # redirected to the login page
+            if len(resp.history) == 1:
+                redirected_page = resp.history[0]
+                location = redirected_page.headers.get('location', '')
+                if 'core' in location:
+                    if location.endswith("/login"):
+                        raise P2PRedirectedToLogin(resp.url, request_log, curl)
 
         if resp.status_code >= 500:
             try:
@@ -1472,12 +1476,15 @@ curl)
         elif resp.status_code == 404:
             raise P2PNotFound(resp.url, request_log, curl)
         elif resp.status_code >= 400:
+
             if u'{"slug":["has already been taken"]}' in resp.content:
                 raise P2PSlugTaken(resp.url, request_log, curl)
             elif u'{"code":["has already been taken"]}' in resp.content:
                 raise P2PSlugTaken(resp.url, request_log, curl)
             elif resp.status_code == 403:
                 raise P2PForbidden(resp.url, request_log, curl)
+            elif resp.status_code == 429:
+                raise P2PThrottled(resp.url, request_log, curl)
             try:
                 resp.json()
             except ValueError:
@@ -1494,7 +1501,6 @@ curl)
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
             verify=True,
-            allow_redirects=False,
         )
 
         # Log the request curl if debug is on
@@ -1527,8 +1533,7 @@ curl)
         resp = self.s.delete(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(),
-            verify=True,
-            allow_redirects=False,)
+            verify=True,)
 
         # Log the request curl if debug is on
         if self.debug:
@@ -1548,7 +1553,6 @@ curl)
             data=payload,
             headers=self.http_headers('application/json'),
             verify=True,
-            allow_redirects=False,
         )
 
         # Log the request curl if debug is on
@@ -1577,7 +1581,6 @@ curl)
             data=payload,
             headers=self.http_headers('application/json'),
             verify=True,
-            allow_redirects=False,
         )
 
         # Log the request curl if debug is on

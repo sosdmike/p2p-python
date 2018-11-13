@@ -45,6 +45,18 @@ class P2PInvalidFileType(P2PFileError):
 class P2PFileURLNotFound(P2PFileError):
     pass
 
+class P2PRedirectedToLogin(P2PException):
+    """
+    An exception when for some reason the client gets redirected to the login page
+    instead of returning a result.
+    """
+    pass
+
+class P2PThrottled(P2PException):
+    """
+    An exception where the api is being throttled
+    """
+    pass
 
 class P2PRetryableError(P2PException):
     """
