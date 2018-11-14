@@ -17,4 +17,10 @@ setup(
     long_description="Python wrapper for API at P2P, the Tribune Publishing CMS",
     url="http://github.com/datadesk/p2p-python",
     license="MIT",
+    classifiers=[
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+    ],
 )
