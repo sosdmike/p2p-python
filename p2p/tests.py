@@ -157,11 +157,11 @@ class StoryAndPhotoTest(BaseP2PTest):
         # Story
         data = self.p2p.get_content_item(self.first_test_story_slug)
         for k in self.content_item_keys:
-            self.assertIn(k, list(data.keys()))
+            self.assertIn(k, data.keys())
         # HTML story
         data = self.p2p.get_content_item(self.test_htmlstory_slug)
         for k in self.content_item_keys:
-            self.assertIn(k, list(data.keys()))
+            self.assertIn(k, data.keys())
 
     def test_related_items(self):
         # Add
@@ -766,13 +766,13 @@ class CollectionTest(BaseP2PTest):
     def test_get_collection(self):
         data = self.p2p.get_collection(self.first_test_collection_code)
         for k in self.collection_keys:
-            self.assertIn(k, list(data.keys()))
+            self.assertIn(k, data.keys())
 
     def test_get_collection_layout(self):
         data = self.p2p.get_collection_layout(self.first_test_collection_code)
 
         for k in self.content_layout_keys:
-            self.assertIn(k, list(data.keys()))
+            self.assertIn(k, data.keys())
 
         for k in self.content_layout_item_keys:
             self.assertIn(k, list(data['items'][0].keys()))
@@ -784,7 +784,7 @@ class CollectionTest(BaseP2PTest):
         )
 
         for k in self.content_layout_keys:
-            self.assertIn(k, list(data.keys()))
+            self.assertIn(k, data.keys())
 
         for k in self.collection_keys:
             self.assertIn(k, list(data['collection'].keys()))
