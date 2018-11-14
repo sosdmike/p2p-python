@@ -85,7 +85,7 @@ try:
             except User.DoesNotExist:
                 return None
 
-except ImportError, e:
+except ImportError as e:
     pass
 
 
