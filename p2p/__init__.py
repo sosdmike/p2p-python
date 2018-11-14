@@ -1500,7 +1500,7 @@ curl)
         resp = self.s.get(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(if_modified_since=if_modified_since),
-            verify=True,
+            verify=True
         )
 
         # Log the request curl if debug is on
@@ -1533,7 +1533,7 @@ curl)
         resp = self.s.delete(
             self.config['P2P_API_ROOT'] + url,
             headers=self.http_headers(),
-            verify=True,)
+            verify=True)
 
         # Log the request curl if debug is on
         if self.debug:
@@ -1552,7 +1552,7 @@ curl)
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=True,
+            verify=True
         )
 
         # Log the request curl if debug is on
@@ -1580,7 +1580,7 @@ curl)
             self.config['P2P_API_ROOT'] + url,
             data=payload,
             headers=self.http_headers('application/json'),
-            verify=True,
+            verify=True
         )
 
         # Log the request curl if debug is on
