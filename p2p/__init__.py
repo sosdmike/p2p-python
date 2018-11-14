@@ -565,16 +565,16 @@ class P2P(object):
             payload['custom_param_data'].update(html_params)
 
         # Get alt_thumbnail_url and old_slug for thumbnail logic below
-        # alt_thumbnail_url = content_item.get('alt_thumbnail_url')
+        alt_thumbnail_url = content_item.get('alt_thumbnail_url', None)
 
         # Only try to update if alt_thumbnail_url is a thing
-        if content_item.get('alt_thumbnail_url', None):
+        if alt_thumbnail_url:
             # data must be nested in this odd photo_upload key
             # if source code is available then it will be placed on the payload, else it will
             # default to the current users product affiliate source code
             payload['photo_upload'] = {
                 'alt_thumbnail': {
-                    'url': content_item.get('alt_thumbnail_url'),
+                    'url': alt_thumbnail_url,
                     "source_code": content_item.get('alt_thumb_source_id', self.source_code)
                 }
             }
