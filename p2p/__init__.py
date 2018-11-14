@@ -1466,9 +1466,9 @@ class P2P(object):
         elif resp.status_code == 404:
             raise P2PNotFound(resp.url, request_log, curl)
         elif resp.status_code >= 400:
-            if b'{"slug":["has already been taken"]}' in resp.content:
+            if u'{"slug":["has already been taken"]}' in resp.text:
                 raise P2PSlugTaken(resp.url, request_log, curl)
-            elif b'{"code":["has already been taken"]}' in resp.content:
+            elif u'{"code":["has already been taken"]}' in resp.text:
                 raise P2PSlugTaken(resp.url, request_log, curl)
             elif resp.status_code == 403:
                 raise P2PForbidden(resp.url, request_log, curl)
