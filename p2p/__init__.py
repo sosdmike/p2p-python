@@ -1476,20 +1476,19 @@ class P2P(object):
             except ValueError:
                 pass
             raise P2PException(resp.url, request_log, curl)
+        elif resp.status_code == 401:
+            raise P2PUnauthorized(resp.url, request_log, curl)
+        elif resp.status_code == 403:
+            raise P2PForbidden(resp.url, request_log, curl)
         elif resp.status_code == 404:
             raise P2PNotFound(resp.url, request_log, curl)
+        elif resp.status_code == 429:
+            raise P2PThrottled(resp.url, request_log, curl)
         elif resp.status_code >= 400:
-
             if u'{"slug":["has already been taken"]}' in resp.content:
                 raise P2PSlugTaken(resp.url, request_log, curl)
             elif u'{"code":["has already been taken"]}' in resp.text:
                 raise P2PSlugTaken(resp.url, request_log, curl)
-            elif resp.status_code == 403:
-                raise P2PForbidden(resp.url, request_log, curl)
-            elif resp.status_code == 429:
-                raise P2PThrottled(resp.url, request_log, curl)
-            elif resp.status_code == 401:
-                raise P2PUnauthorized(resp.url, request_log, curl)
             try:
                 resp.json()
             except ValueError:
