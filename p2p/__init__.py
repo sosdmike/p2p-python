@@ -36,7 +36,8 @@ from .errors import (  # noqa
     P2PInvalidAccessDefinition,
     P2PUniqueConstraintViolated,
     P2PRedirectedToLogin,
-    P2PThrottled
+    P2PThrottled,
+    P2PUnauthorized
 )
 log = logging.getLogger('p2p')
 
@@ -1487,6 +1488,8 @@ class P2P(object):
                 raise P2PForbidden(resp.url, request_log, curl)
             elif resp.status_code == 429:
                 raise P2PThrottled(resp.url, request_log, curl)
+            elif resp.status_code == 401:
+                raise P2PUnauthorized(resp.url, request_log, curl)
             try:
                 resp.json()
             except ValueError:
